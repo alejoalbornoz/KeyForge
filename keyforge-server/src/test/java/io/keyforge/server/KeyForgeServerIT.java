@@ -20,12 +20,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.AfterParameterizedClassInvocation;
+import org.junit.jupiter.params.BeforeParameterizedClassInvocation;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import io.keyforge.protocol.RespBulkString;
 import io.keyforge.protocol.RespDecoder;
@@ -42,25 +45,34 @@ import redis.clients.jedis.commands.ProtocolCommand;
 import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.params.SetParams;
 
-/** End-to-end tests over real sockets, with a real Redis client (Jedis) and with hand-written raw RESP. */
+/**
+ * End-to-end tests over real sockets, with a real Redis client (Jedis) and with hand-written raw RESP. Every test runs
+ * once against each server implementation, which must behave identically.
+ */
 @Timeout(60)
-class NettyServerIT {
+@ParameterizedClass(name = "{0}")
+@EnumSource(ServerType.class)
+class KeyForgeServerIT {
 
     private static KeyForgeNode node;
 
+    @Parameter
+    ServerType serverType;
+
     private Jedis jedis;
 
-    @BeforeAll
-    static void startNode() throws InterruptedException {
+    @BeforeParameterizedClassInvocation
+    static void startNode(ServerType serverType) throws InterruptedException {
         KeyForgeConfig config = KeyForgeConfig.load(null, Map.of(), Map.of(
                 KeyForgeConfig.SERVER_BIND, "127.0.0.1",
                 KeyForgeConfig.SERVER_PORT, "0",
+                KeyForgeConfig.SERVER_TYPE, serverType.configName(),
                 KeyForgeConfig.SERVER_IO_THREADS, "4",
                 KeyForgeConfig.STORE_ACTIVE_EXPIRE_INTERVAL_MS, "20"));
         node = KeyForgeNode.start(config);
     }
 
-    @AfterAll
+    @AfterParameterizedClassInvocation
     static void stopNode() {
         node.close();
     }

@@ -1,0 +1,48 @@
+[0.009s][info][gc] Using G1
+20:55:11.590 INFO  [main] [node-1] io.keyforge.server.KeyForgeMain - Starting KeyForge 0.1.0-SNAPSHOT with {node.id=node-1, server.bind=0.0.0.0, server.port=6379, server.type=virtual-threads, server.io-threads=0, protocol.max-bulk-length=536870912, protocol.max-array-length=1048576, store.segments=256, store.active-expire-interval-ms=100}
+20:55:11.627 INFO  [main] [node-1] io.keyforge.server.KeyForgeMain - Ready to accept connections on 0.0.0.0:6379
+[1.711s][info][gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause) 15M->2M(126M) 7.649ms
+[2.323s][info][gc] GC(1) Pause Full (Diagnostic Command) 30M->22M(80M) 50.555ms
+[3.440s][info][gc] GC(2) Pause Young (Normal) (G1 Evacuation Pause) 45M->44M(80M) 16.872ms
+[3.497s][info][gc] GC(3) Pause Young (Concurrent Start) (G1 Evacuation Pause) 56M->56M(80M) 11.394ms
+[3.498s][info][gc] GC(4) Concurrent Mark Cycle
+[3.575s][info][gc] GC(4) Pause Remark 59M->59M(97M) 1.981ms
+[3.588s][info][gc] GC(4) Pause Cleanup 59M->59M(97M) 0.022ms
+[3.589s][info][gc] GC(4) Concurrent Mark Cycle 91.058ms
+[3.632s][info][gc] GC(5) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 63M->63M(97M) 6.212ms
+[3.674s][info][gc] GC(6) Pause Young (Mixed) (G1 Evacuation Pause) 73M->72M(97M) 8.044ms
+[3.757s][info][gc] GC(7) Pause Young (Concurrent Start) (G1 Evacuation Pause) 79M->79M(194M) 8.153ms
+[3.757s][info][gc] GC(8) Concurrent Mark Cycle
+[4.009s][info][gc] GC(8) Pause Remark 93M->93M(194M) 1.731ms
+[4.027s][info][gc] GC(8) Pause Cleanup 93M->93M(194M) 0.024ms
+[4.028s][info][gc] GC(8) Concurrent Mark Cycle 271.475ms
+[4.425s][info][gc] GC(9) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 116M->115M(194M) 47.398ms
+[4.716s][info][gc] GC(10) Pause Young (Mixed) (G1 Evacuation Pause) 139M->137M(194M) 19.558ms
+[4.969s][info][gc] GC(11) Pause Young (Concurrent Start) (G1 Evacuation Pause) 154M->154M(194M) 24.319ms
+[4.969s][info][gc] GC(12) Concurrent Mark Cycle
+[5.080s][info][gc] GC(13) Pause Young (Normal) (G1 Evacuation Pause) 166M->166M(194M) 9.789ms
+[5.153s][info][gc] GC(14) Pause Young (Normal) (G1 Evacuation Pause) 174M->174M(388M) 5.971ms
+[5.178s][info][gc] GC(12) Pause Remark 177M->177M(388M) 1.809ms
+[5.226s][info][gc] GC(12) Pause Cleanup 184M->184M(388M) 0.038ms
+[5.228s][info][gc] GC(12) Concurrent Mark Cycle 258.401ms
+[5.830s][info][gc] GC(15) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 240M->237M(388M) 57.957ms
+[32.940s][info][gc] GC(16) Pause Young (Mixed) (G1 Evacuation Pause) 284M->282M(388M) 86.336ms
+[58.065s][info][gc] GC(17) Pause Young (Concurrent Start) (G1 Evacuation Pause) 315M->313M(388M) 38.961ms
+[58.065s][info][gc] GC(18) Concurrent Mark Cycle
+[58.400s][info][gc] GC(18) Pause Remark 314M->314M(525M) 2.400ms
+[58.460s][info][gc] GC(18) Pause Cleanup 314M->314M(525M) 0.043ms
+[58.461s][info][gc] GC(18) Concurrent Mark Cycle 396.229ms
+[75.933s][info][gc] GC(19) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 336M->336M(525M) 38.197ms
+[101.946s][info][gc] GC(20) Pause Full (Diagnostic Command) 364M->355M(595M) 235.030ms
+[108.952s][info][gc] GC(21) Pause Young (Concurrent Start) (G1 Evacuation Pause) 430M->400M(595M) 46.435ms
+[108.952s][info][gc] GC(22) Concurrent Mark Cycle
+[109.432s][info][gc] GC(22) Pause Remark 409M->409M(670M) 2.103ms
+[109.540s][info][gc] GC(22) Pause Cleanup 411M->411M(670M) 0.045ms
+[109.541s][info][gc] GC(22) Concurrent Mark Cycle 589.313ms
+[115.428s][info][gc] GC(23) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 464M->423M(670M) 51.853ms
+[125.488s][info][gc] GC(24) Pause Young (Mixed) (G1 Evacuation Pause) 506M->448M(670M) 80.180ms
+[134.933s][info][gc] GC(25) Pause Young (Concurrent Start) (G1 Evacuation Pause) 528M->471M(670M) 52.874ms
+[134.933s][info][gc] GC(26) Concurrent Mark Cycle
+[135.431s][info][gc] GC(26) Pause Remark 480M->431M(705M) 2.521ms
+[135.507s][info][gc] GC(26) Pause Cleanup 433M->433M(705M) 0.054ms
+[135.508s][info][gc] GC(26) Concurrent Mark Cycle 574.198ms

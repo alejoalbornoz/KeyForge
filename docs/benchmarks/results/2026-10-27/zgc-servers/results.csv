@@ -1,0 +1,5 @@
+label,transport,connections,connected,connect_s,mode,target_rps,achieved_rps,requests,errors,disconnects,duration_s,p50_us,p90_us,p99_us,p999_us,p9999_us,max_us,mean_us,timer_lag_p99_us,timer_lag_max_us,server_rss_base_mb,server_rss_idle_mb,server_rss_peak_mb,server_heap_base_mb,server_heap_idle_mb,server_threads_idle,server_threads_peak,server_cpu_cores,client_cpu_cores
+netty,epoll,1000,1000,0.9,open,40000,40638.6,1220270,0,0,30.0,1110.0,45842.4,1095761.9,2212495.4,2776629.2,3021996.0,37716.1,16670.7,55181.3,171.9,181.3,536.5,32.0,34.0,29,29,1.47,1.35
+virtual-threads,epoll,1000,1000,0.6,open,40000,39999.9,1200122,0,0,30.0,3952.6,62193.7,308281.3,428867.6,449839.1,460587.0,21563.2,9478.1,46923.8,109.4,125.2,511.5,34.0,40.0,29,29,1.36,1.06
+netty,epoll,10000,10000,2.2,open,40000,40002.2,1200250,0,0,30.0,389.6,20824.1,393478.1,606601.2,695205.9,727187.5,14855.8,55443.5,453247.0,166.5,179.2,533.6,34.0,60.0,29,29,1.52,1.26
+virtual-threads,epoll,10000,10000,2.3,open,40000,39999.0,1200076,0,0,30.0,2390.0,13377.5,46923.8,100401.2,113770.5,119472.1,5569.8,12558.3,37847.0,109.3,199.9,538.2,34.0,118.0,29,29,1.40,1.09

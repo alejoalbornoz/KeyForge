@@ -1,0 +1,16 @@
+[0.013s][info][gc] Using G1
+21:14:55.025 INFO  [main] [node-1] io.keyforge.server.KeyForgeMain - Starting KeyForge 0.1.0-SNAPSHOT with {node.id=node-1, server.bind=0.0.0.0, server.port=6379, server.type=netty, server.io-threads=0, protocol.max-bulk-length=536870912, protocol.max-array-length=1048576, store.segments=256, store.active-expire-interval-ms=100}
+[1.224s][info][gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause) 15M->2M(126M) 7.442ms
+21:14:56.163 INFO  [main] [node-1] io.keyforge.server.KeyForgeMain - Ready to accept connections on 0.0.0.0:6379
+[3.273s][info][gc] GC(1) Pause Young (Normal) (G1 Evacuation Pause) 51M->21M(126M) 34.435ms
+[3.780s][info][gc] GC(2) Pause Full (Diagnostic Command) 31M->25M(87M) 43.142ms
+[10.079s][info][gc] GC(3) Pause Full (Diagnostic Command) 28M->26M(87M) 39.908ms
+[13.203s][info][gc] GC(4) Pause Young (Normal) (G1 Evacuation Pause) 50M->28M(87M) 5.658ms
+[16.405s][info][gc] GC(5) Pause Young (Normal) (G1 Evacuation Pause) 56M->29M(87M) 4.987ms
+[20.061s][info][gc] GC(6) Pause Young (Normal) (G1 Evacuation Pause) 61M->29M(87M) 9.570ms
+[24.037s][info][gc] GC(7) Pause Young (Normal) (G1 Evacuation Pause) 64M->30M(87M) 10.469ms
+[28.255s][info][gc] GC(8) Pause Young (Normal) (G1 Evacuation Pause) 67M->31M(87M) 8.574ms
+[32.684s][info][gc] GC(9) Pause Young (Normal) (G1 Evacuation Pause) 70M->32M(87M) 10.845ms
+[37.238s][info][gc] GC(10) Pause Young (Normal) (G1 Evacuation Pause) 72M->33M(87M) 8.291ms
+[41.909s][info][gc] GC(11) Pause Young (Normal) (G1 Evacuation Pause) 74M->34M(87M) 16.791ms
+[46.545s][info][gc] GC(12) Pause Young (Normal) (G1 Evacuation Pause) 75M->34M(87M) 6.869ms

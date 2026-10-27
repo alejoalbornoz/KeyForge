@@ -1,0 +1,47 @@
+[netty] 1000/1000 connections in 0.9 s
+[netty] warmup   1s      4415 req/s  p50  654836 us  p99   812122 us  p99.9   832569 us  | server RSS   183 MiB, 29 threads
+[netty] warmup   2s     15029 req/s  p50 1118831 us  p99  1508901 us  p99.9  1556087 us  | server RSS   183 MiB, 29 threads
+[netty] warmup   3s     17934 req/s  p50 1651507 us  p99  2176844 us  p99.9  2327839 us  | server RSS   183 MiB, 29 threads
+[netty] warmup   4s     30371 req/s  p50 2119172 us  p99  2665480 us  p99.9  2797601 us  | server RSS   183 MiB, 29 threads
+[netty] warmup   5s     30817 req/s  p50 2378170 us  p99  3172991 us  p99.9  3277849 us  | server RSS   186 MiB, 29 threads
+[netty] warmup   6s     43147 req/s  p50 2380268 us  p99  3263169 us  p99.9  3376415 us  | server RSS   203 MiB, 29 threads
+[netty] warmup   7s     43473 req/s  p50 2252341 us  p99  3464495 us  p99.9  3602907 us  | server RSS   228 MiB, 29 threads
+[netty] warmup   8s     49655 req/s  p50 2062549 us  p99  3560964 us  p99.9  3745513 us  | server RSS   254 MiB, 29 threads
+[netty] warmup   9s     72583 req/s  p50 1536164 us  p99  3409969 us  p99.9  3592421 us  | server RSS   292 MiB, 29 threads
+[netty] warmup  10s     67358 req/s  p50  861929 us  p99  2950693 us  p99.9  3210740 us  | server RSS   325 MiB, 29 threads
+[netty] measure   1s     61559 req/s  p50   97255 us  p99  2397045 us  p99.9  2875195 us  | server RSS   325 MiB, 29 threads
+[netty] measure   2s     39836 req/s  p50     347 us  p99    18350 us  p99.9    26493 us  | server RSS   325 MiB, 29 threads
+[netty] measure   3s     39690 req/s  p50   22921 us  p99   211288 us  p99.9   249954 us  | server RSS   325 MiB, 29 threads
+[netty] measure   4s     36007 req/s  p50   65274 us  p99   288358 us  p99.9   333971 us  | server RSS   325 MiB, 29 threads
+[netty] measure   5s     44213 req/s  p50   23085 us  p99   370147 us  p99.9   466878 us  | server RSS   325 MiB, 29 threads
+[netty] measure   6s     40254 req/s  p50     589 us  p99    41452 us  p99.9    56558 us  | server RSS   325 MiB, 29 threads
+[netty] measure   7s     40000 req/s  p50     193 us  p99    15180 us  p99.9    23970 us  | server RSS   335 MiB, 29 threads
+[netty] measure   8s     40000 req/s  p50     238 us  p99    27001 us  p99.9    40075 us  | server RSS   357 MiB, 29 threads
+[netty] measure   9s     39806 req/s  p50     267 us  p99    15737 us  p99.9    24707 us  | server RSS   378 MiB, 29 threads
+[netty] measure  10s     40166 req/s  p50     186 us  p99     5370 us  p99.9    10281 us  | server RSS   400 MiB, 29 threads
+[netty] measure  11s     36424 req/s  p50   35258 us  p99   182845 us  p99.9   224395 us  | server RSS   419 MiB, 29 threads
+[netty] measure  12s     43444 req/s  p50   11108 us  p99   261751 us  p99.9   317456 us  | server RSS   442 MiB, 29 threads
+[netty] measure  13s     39099 req/s  p50    6103 us  p99    48136 us  p99.9    66159 us  | server RSS   462 MiB, 29 threads
+[netty] measure  14s     41047 req/s  p50    4313 us  p99    52560 us  p99.9    78774 us  | server RSS   484 MiB, 29 threads
+[netty] measure  15s     39971 req/s  p50    1274 us  p99    73400 us  p99.9    95945 us  | server RSS   505 MiB, 29 threads
+[netty] measure  16s     39951 req/s  p50     914 us  p99    55968 us  p99.9    72221 us  | server RSS   534 MiB, 29 threads
+[netty] measure  17s     39935 req/s  p50    1210 us  p99    20464 us  p99.9    30573 us  | server RSS   534 MiB, 29 threads
+[netty] measure  18s     40132 req/s  p50     466 us  p99    21316 us  p99.9    33849 us  | server RSS   534 MiB, 29 threads
+[netty] measure  19s     39998 req/s  p50     193 us  p99    13861 us  p99.9    21299 us  | server RSS   534 MiB, 29 threads
+[netty] measure  20s     40008 req/s  p50     237 us  p99    24756 us  p99.9    37749 us  | server RSS   534 MiB, 29 threads
+[netty] measure  21s     39946 req/s  p50     390 us  p99    46498 us  p99.9    54919 us  | server RSS   534 MiB, 29 threads
+[netty] measure  22s     40073 req/s  p50     564 us  p99    23085 us  p99.9    30409 us  | server RSS   534 MiB, 29 threads
+[netty] measure  23s     39996 req/s  p50     192 us  p99    20251 us  p99.9    29671 us  | server RSS   534 MiB, 29 threads
+[netty] measure  24s     39998 req/s  p50     180 us  p99     5902 us  p99.9    11248 us  | server RSS   537 MiB, 29 threads
+[netty] measure  25s     39992 req/s  p50     436 us  p99    39518 us  p99.9    54329 us  | server RSS   537 MiB, 29 threads
+[netty] measure  26s     40012 req/s  p50     273 us  p99    62259 us  p99.9    77988 us  | server RSS   537 MiB, 29 threads
+[netty] measure  27s     39748 req/s  p50     278 us  p99    26919 us  p99.9    36667 us  | server RSS   537 MiB, 29 threads
+[netty] measure  28s     40146 req/s  p50    1091 us  p99    20300 us  p99.9    27492 us  | server RSS   537 MiB, 29 threads
+[netty] measure  29s     39647 req/s  p50    6107 us  p99   130023 us  p99.9   170525 us  | server RSS   537 MiB, 29 threads
+[netty] measure  30s     39172 req/s  p50   14459 us  p99    83558 us  p99.9   106234 us  | server RSS   537 MiB, 29 threads
+netty: 1000/1000 connections (0.9 s to connect), open loop at 40000 req/s, epoll transport
+  throughput  40639 req/s over 30.0 s (1220270 replies, 0 errors, 0 disconnects)
+  latency us  p50 1110  p90 45842  p99 1095762  p99.9 2212495  p99.99 2776629  max 3021996  mean 37716
+  timer lag   p99 16671 us  max 55181 us
+  server      RSS 172 MiB before connect, 181 MiB idle, 537 MiB peak; live heap 32.0 MiB before connect, 34.0 MiB idle; threads 29 idle, 29 peak; 1.47 cores
+  client      1.35 cores

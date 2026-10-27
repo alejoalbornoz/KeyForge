@@ -1,0 +1,49 @@
+[0.010s][info][gc] Using G1
+21:35:26.843 INFO  [main] [node-1] io.keyforge.server.KeyForgeMain - Starting KeyForge 0.1.0-SNAPSHOT with {node.id=node-1, server.bind=0.0.0.0, server.port=6379, server.type=virtual-threads, server.io-threads=0, protocol.max-bulk-length=536870912, protocol.max-array-length=1048576, store.segments=256, store.active-expire-interval-ms=100}
+21:35:26.910 INFO  [main] [node-1] io.keyforge.server.KeyForgeMain - Ready to accept connections on 0.0.0.0:6379
+[1.754s][info][gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause) 15M->2M(126M) 7.165ms
+[2.332s][info][gc] GC(1) Pause Full (Diagnostic Command) 30M->22M(80M) 50.061ms
+[3.412s][info][gc] GC(2) Pause Young (Normal) (G1 Evacuation Pause) 45M->43M(80M) 17.733ms
+[3.477s][info][gc] GC(3) Pause Young (Concurrent Start) (G1 Evacuation Pause) 56M->56M(80M) 24.893ms
+[3.477s][info][gc] GC(4) Concurrent Mark Cycle
+[3.559s][info][gc] GC(4) Pause Remark 59M->59M(97M) 5.569ms
+[3.573s][info][gc] GC(4) Pause Cleanup 59M->59M(97M) 0.024ms
+[3.573s][info][gc] GC(4) Concurrent Mark Cycle 95.730ms
+[3.609s][info][gc] GC(5) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 64M->64M(97M) 6.373ms
+[4.632s][info][gc] GC(6) Pause Young (Mixed) (G1 Evacuation Pause) 74M->74M(97M) 13.255ms
+[4.699s][info][gc] GC(7) Pause Young (Concurrent Start) (G1 Evacuation Pause) 80M->81M(176M) 8.530ms
+[4.699s][info][gc] GC(8) Concurrent Mark Cycle
+[4.814s][info][gc] GC(8) Pause Remark 93M->93M(176M) 1.876ms
+[4.832s][info][gc] GC(8) Pause Cleanup 93M->93M(176M) 0.024ms
+[4.833s][info][gc] GC(8) Concurrent Mark Cycle 134.114ms
+[6.021s][info][gc] GC(9) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 112M->111M(176M) 18.584ms
+[6.136s][info][gc] GC(10) Pause Young (Mixed) (G1 Evacuation Pause) 131M->129M(176M) 16.551ms
+[6.231s][info][gc] GC(11) Pause Young (Concurrent Start) (G1 Evacuation Pause) 143M->143M(176M) 11.696ms
+[6.231s][info][gc] GC(12) Concurrent Mark Cycle
+[6.407s][info][gc] GC(13) Pause Young (Normal) (G1 Evacuation Pause) 153M->153M(176M) 20.653ms
+[6.457s][info][gc] GC(14) Pause Young (Normal) (G1 Evacuation Pause) 159M->159M(352M) 3.770ms
+[6.578s][info][gc] GC(12) Pause Remark 170M->170M(352M) 1.061ms
+[6.647s][info][gc] GC(12) Pause Cleanup 178M->178M(352M) 0.039ms
+[6.648s][info][gc] GC(12) Concurrent Mark Cycle 417.182ms
+[7.020s][info][gc] GC(15) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 219M->216M(352M) 40.496ms
+[10.941s][info][gc] GC(16) Pause Young (Mixed) (G1 Evacuation Pause) 258M->255M(352M) 60.665ms
+[32.303s][info][gc] GC(17) Pause Young (Concurrent Start) (G1 Evacuation Pause) 285M->284M(352M) 24.525ms
+[32.304s][info][gc] GC(18) Concurrent Mark Cycle
+[32.607s][info][gc] GC(18) Pause Remark 285M->285M(475M) 8.618ms
+[32.665s][info][gc] GC(18) Pause Cleanup 285M->285M(475M) 0.043ms
+[32.666s][info][gc] GC(18) Concurrent Mark Cycle 362.505ms
+[48.003s][info][gc] GC(19) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 305M->304M(475M) 36.226ms
+[95.510s][info][gc] GC(20) Pause Young (Mixed) (G1 Evacuation Pause) 359M->356M(475M) 96.324ms
+[95.548s][info][gc] GC(21) Pause Young (Concurrent Start) (G1 Humongous Allocation) 357M->358M(475M) 28.931ms
+[95.548s][info][gc] GC(22) Concurrent Mark Cycle
+[96.023s][info][gc] GC(22) Pause Remark 360M->360M(600M) 2.636ms
+[96.094s][info][gc] GC(22) Pause Cleanup 360M->360M(600M) 0.052ms
+[96.097s][info][gc] GC(22) Concurrent Mark Cycle 548.112ms
+[106.862s][info][gc] GC(23) Pause Full (Diagnostic Command) 365M->355M(600M) 241.429ms
+[115.123s][info][gc] GC(24) Pause Young (Concurrent Start) (G1 Evacuation Pause) 438M->402M(600M) 64.020ms
+[115.123s][info][gc] GC(25) Concurrent Mark Cycle
+[115.814s][info][gc] GC(25) Pause Remark 415M->415M(674M) 1.849ms
+[115.910s][info][gc] GC(25) Pause Cleanup 416M->416M(674M) 0.048ms
+[115.911s][info][gc] GC(25) Concurrent Mark Cycle 788.515ms
+[123.960s][info][gc] GC(26) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 475M->424M(674M) 73.424ms
+[137.311s][info][gc] GC(27) Pause Young (Mixed) (G1 Evacuation Pause) 522M->447M(674M) 52.246ms

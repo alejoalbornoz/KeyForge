@@ -1,0 +1,5 @@
+[0.060s][info][gc] Using The Z Garbage Collector
+[1.318s][info][gc] GC(0) Major Collection (Warmup)
+[1.382s][info][gc] GC(0) Major Collection (Warmup) 206M(10%)->56M(3%) 0.064s
+[146.746s][info][gc] GC(1) Major Collection (Warmup)
+[147.211s][info][gc] GC(1) Major Collection (Warmup) 410M(20%)->200M(10%) 0.465s

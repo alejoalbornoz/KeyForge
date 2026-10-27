@@ -1,0 +1,9 @@
+date: 2026-10-27T21:48:57Z
+image: eclipse-temurin:25-jdk (sha256:f5b4ef3a13414837e75a0d124b28e7263690df23a780749880407768a6d42618)
+docker: 29.6.1, Docker Desktop, kernel 5.15.167.4-microsoft-standard-WSL2, 4 CPUs, 8297238528 bytes
+server: cpus 0,1, java -Xmx2g -XX:+UseG1GC -Xlog:gc:stdout -Djdk.pollerMode=1
+client: cpus 2,3, java -Xmx2g -XX:+UseZGC
+warmup 10s, duration 30s, settle 5s
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)

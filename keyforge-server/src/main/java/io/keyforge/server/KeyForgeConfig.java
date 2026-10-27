@@ -25,7 +25,9 @@ import java.util.Properties;
  * @param nodeId               identifies the node in logs (MDC key {@code nodeId})
  * @param bindAddress          address the server listens on
  * @param port                 TCP port; 0 picks a free one
- * @param ioThreads            Netty event-loop threads; 0 means Netty's default of twice the CPU count
+ * @param serverType           network front end: Netty event loops or one virtual thread per connection
+ * @param ioThreads            Netty event-loop threads; 0 means Netty's default of twice the CPU count. Ignored by the
+ *                             virtual-thread server, whose carrier threads are the JDK's default scheduler
  * @param maxBulkLength        largest accepted bulk string, like Redis' {@code proto-max-bulk-len}
  * @param maxArrayLength       most arguments accepted in one request
  * @param storeSegments        lock segments of the in-memory store; a power of two
@@ -35,6 +37,7 @@ public record KeyForgeConfig(
         String nodeId,
         String bindAddress,
         int port,
+        ServerType serverType,
         int ioThreads,
         int maxBulkLength,
         int maxArrayLength,
@@ -44,6 +47,7 @@ public record KeyForgeConfig(
     public static final String NODE_ID = "node.id";
     public static final String SERVER_BIND = "server.bind";
     public static final String SERVER_PORT = "server.port";
+    public static final String SERVER_TYPE = "server.type";
     public static final String SERVER_IO_THREADS = "server.io-threads";
     public static final String PROTOCOL_MAX_BULK_LENGTH = "protocol.max-bulk-length";
     public static final String PROTOCOL_MAX_ARRAY_LENGTH = "protocol.max-array-length";
@@ -57,6 +61,7 @@ public record KeyForgeConfig(
     public KeyForgeConfig {
         Objects.requireNonNull(nodeId, "nodeId");
         Objects.requireNonNull(bindAddress, "bindAddress");
+        Objects.requireNonNull(serverType, "serverType");
         Objects.requireNonNull(activeExpireInterval, "activeExpireInterval");
         require(port >= 0 && port <= 65535, SERVER_PORT, "must be between 0 and 65535");
         require(ioThreads >= 0, SERVER_IO_THREADS, "must not be negative");
@@ -140,6 +145,7 @@ public record KeyForgeConfig(
         properties.put(NODE_ID, nodeId);
         properties.put(SERVER_BIND, bindAddress);
         properties.put(SERVER_PORT, Integer.toString(port));
+        properties.put(SERVER_TYPE, serverType.configName());
         properties.put(SERVER_IO_THREADS, Integer.toString(ioThreads));
         properties.put(PROTOCOL_MAX_BULK_LENGTH, Integer.toString(maxBulkLength));
         properties.put(PROTOCOL_MAX_ARRAY_LENGTH, Integer.toString(maxArrayLength));
@@ -149,7 +155,12 @@ public record KeyForgeConfig(
     }
 
     public KeyForgeConfig withPort(int newPort) {
-        return new KeyForgeConfig(nodeId, bindAddress, newPort, ioThreads, maxBulkLength, maxArrayLength,
+        return new KeyForgeConfig(nodeId, bindAddress, newPort, serverType, ioThreads, maxBulkLength, maxArrayLength,
+                storeSegments, activeExpireInterval);
+    }
+
+    public KeyForgeConfig withServerType(ServerType newServerType) {
+        return new KeyForgeConfig(nodeId, bindAddress, port, newServerType, ioThreads, maxBulkLength, maxArrayLength,
                 storeSegments, activeExpireInterval);
     }
 
@@ -158,6 +169,7 @@ public record KeyForgeConfig(
         defaults.put(NODE_ID, "node-1");
         defaults.put(SERVER_BIND, "0.0.0.0");
         defaults.put(SERVER_PORT, "6379");
+        defaults.put(SERVER_TYPE, ServerType.NETTY.configName());
         defaults.put(SERVER_IO_THREADS, "0");
         defaults.put(PROTOCOL_MAX_BULK_LENGTH, Integer.toString(512 * 1024 * 1024));
         defaults.put(PROTOCOL_MAX_ARRAY_LENGTH, Integer.toString(1024 * 1024));
@@ -171,6 +183,7 @@ public record KeyForgeConfig(
                 values.get(NODE_ID).strip(),
                 values.get(SERVER_BIND).strip(),
                 parseInt(values, SERVER_PORT),
+                ServerType.fromConfigName(values.get(SERVER_TYPE).strip()),
                 parseInt(values, SERVER_IO_THREADS),
                 parseInt(values, PROTOCOL_MAX_BULK_LENGTH),
                 parseInt(values, PROTOCOL_MAX_ARRAY_LENGTH),

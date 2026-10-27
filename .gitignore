@@ -9,3 +9,6 @@ target/
 .project
 .settings/
 .DS_Store
+
+# Benchmark raw data is part of the documentation.
+!docs/benchmarks/results/**/*.log

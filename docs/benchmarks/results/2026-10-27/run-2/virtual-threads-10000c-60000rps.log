@@ -1,0 +1,47 @@
+[virtual-threads] 10000/10000 connections in 2.2 s
+[virtual-threads] warmup   1s     26073 req/s  p50  384303 us  p99   639107 us  p99.9   646447 us  | server RSS   210 MiB, 26 threads
+[virtual-threads] warmup   2s     74291 req/s  p50  336593 us  p99  1039663 us  p99.9  1055916 us  | server RSS   250 MiB, 26 threads
+[virtual-threads] warmup   3s     74650 req/s  p50   36241 us  p99   697303 us  p99.9   801112 us  | server RSS   254 MiB, 26 threads
+[virtual-threads] warmup   4s     59058 req/s  p50   17662 us  p99   177209 us  p99.9   181535 us  | server RSS   271 MiB, 26 threads
+[virtual-threads] warmup   5s     61304 req/s  p50     628 us  p99    29458 us  p99.9    35095 us  | server RSS   275 MiB, 26 threads
+[virtual-threads] warmup   6s     59051 req/s  p50     225 us  p99    33882 us  p99.9    38470 us  | server RSS   275 MiB, 26 threads
+[virtual-threads] warmup   7s     60877 req/s  p50     596 us  p99    40272 us  p99.9    50233 us  | server RSS   281 MiB, 26 threads
+[virtual-threads] warmup   8s     60070 req/s  p50     770 us  p99     7062 us  p99.9     9036 us  | server RSS   281 MiB, 26 threads
+[virtual-threads] warmup   9s     58628 req/s  p50   57442 us  p99   232129 us  p99.9   239731 us  | server RSS   293 MiB, 26 threads
+[virtual-threads] warmup  10s     59916 req/s  p50     316 us  p99    33686 us  p99.9    35553 us  | server RSS   308 MiB, 26 threads
+[virtual-threads] measure   1s     61657 req/s  p50   11493 us  p99    74908 us  p99.9    87556 us  | server RSS   308 MiB, 26 threads
+[virtual-threads] measure   2s     58885 req/s  p50     367 us  p99    44499 us  p99.9    50364 us  | server RSS   308 MiB, 26 threads
+[virtual-threads] measure   3s     61199 req/s  p50     174 us  p99    37618 us  p99.9    44073 us  | server RSS   314 MiB, 26 threads
+[virtual-threads] measure   4s     57329 req/s  p50     176 us  p99    43188 us  p99.9    56295 us  | server RSS   314 MiB, 26 threads
+[virtual-threads] measure   5s     58221 req/s  p50    6820 us  p99   145883 us  p99.9   151388 us  | server RSS   314 MiB, 26 threads
+[virtual-threads] measure   6s     64426 req/s  p50     454 us  p99   148505 us  p99.9   170131 us  | server RSS   314 MiB, 26 threads
+[virtual-threads] measure   7s     58812 req/s  p50   57999 us  p99   109969 us  p99.9   119472 us  | server RSS   314 MiB, 26 threads
+[virtual-threads] measure   8s     61212 req/s  p50     317 us  p99    38502 us  p99.9    42467 us  | server RSS   314 MiB, 26 threads
+[virtual-threads] measure   9s     60001 req/s  p50     183 us  p99    26411 us  p99.9    33047 us  | server RSS   314 MiB, 26 threads
+[virtual-threads] measure  10s     59998 req/s  p50     269 us  p99    18973 us  p99.9    23413 us  | server RSS   314 MiB, 26 threads
+[virtual-threads] measure  11s     59998 req/s  p50     185 us  p99    31031 us  p99.9    40272 us  | server RSS   314 MiB, 26 threads
+[virtual-threads] measure  12s     59978 req/s  p50     178 us  p99     4792 us  p99.9     8397 us  | server RSS   314 MiB, 26 threads
+[virtual-threads] measure  13s     59477 req/s  p50    2873 us  p99    60654 us  p99.9    65438 us  | server RSS   318 MiB, 26 threads
+[virtual-threads] measure  14s     59535 req/s  p50     172 us  p99    27902 us  p99.9    35717 us  | server RSS   319 MiB, 26 threads
+[virtual-threads] measure  15s     61005 req/s  p50     177 us  p99    30966 us  p99.9    37454 us  | server RSS   319 MiB, 26 threads
+[virtual-threads] measure  16s     59304 req/s  p50     252 us  p99    31408 us  p99.9    34341 us  | server RSS   319 MiB, 26 threads
+[virtual-threads] measure  17s     60697 req/s  p50     174 us  p99    24707 us  p99.9    33538 us  | server RSS   319 MiB, 26 threads
+[virtual-threads] measure  18s     60002 req/s  p50     153 us  p99     7148 us  p99.9    10396 us  | server RSS   319 MiB, 26 threads
+[virtual-threads] measure  19s     58231 req/s  p50     186 us  p99    45777 us  p99.9    51216 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  20s     61771 req/s  p50     161 us  p99    61112 us  p99.9    67109 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  21s     59607 req/s  p50     170 us  p99    31293 us  p99.9    38339 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  22s     60389 req/s  p50     215 us  p99    49086 us  p99.9    52429 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  23s     59963 req/s  p50     150 us  p99     7537 us  p99.9    15090 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  24s     59294 req/s  p50     281 us  p99    27214 us  p99.9    34210 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  25s     60647 req/s  p50     176 us  p99    31900 us  p99.9    42664 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  26s     59967 req/s  p50     155 us  p99     9069 us  p99.9    12812 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  27s     60132 req/s  p50     173 us  p99    28918 us  p99.9    36274 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  28s     59999 req/s  p50     269 us  p99    15000 us  p99.9    18481 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  29s     59981 req/s  p50     435 us  p99    23036 us  p99.9    31654 us  | server RSS   323 MiB, 26 threads
+[virtual-threads] measure  30s     60019 req/s  p50     528 us  p99     7991 us  p99.9    12288 us  | server RSS   323 MiB, 26 threads
+virtual-threads: 10000/10000 connections (2.2 s to connect), open loop at 60000 req/s, epoll transport
+  throughput  60054 req/s over 30.0 s (1801736 replies, 0 errors, 0 disconnects)
+  latency us  p50 215  p90 21479  p99 93979  p99.9 144966  p99.99 164364  max 172360  mean 6831
+  timer lag   p99 26427 us  max 51380 us
+  server      RSS 93 MiB before connect, 194 MiB idle, 323 MiB peak; live heap 23.0 MiB before connect, 105.0 MiB idle; threads 26 idle, 26 peak; 1.64 cores
+  client      1.47 cores

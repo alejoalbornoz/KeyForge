@@ -8,10 +8,11 @@ import io.keyforge.server.command.CommandDispatcher;
 import io.keyforge.server.command.CommandTable;
 import io.keyforge.server.command.StandardCommands;
 import io.keyforge.server.netty.NettyServer;
+import io.keyforge.server.vthreads.VirtualThreadServer;
 import io.keyforge.storage.InMemoryKeyValueStore;
 import io.keyforge.storage.KeyValueStore;
 
-/** Composition root: wires the store, the command table and the network server of one node. */
+/** Composition root: wires the store, the command table and the network server ({@code server.type}) of one node. */
 public final class KeyForgeNode implements AutoCloseable {
 
     private final KeyValueStore store;
@@ -28,7 +29,11 @@ public final class KeyForgeNode implements AutoCloseable {
         KeyValueStore store = new InMemoryKeyValueStore(new InMemoryKeyValueStore.Options(
                 config.storeSegments(), config.activeExpireInterval(), clock));
         CommandTable commands = StandardCommands.create(store, clock, version(), redisConfigParameters(config));
-        KeyForgeServer server = new NettyServer(config, new CommandDispatcher(commands));
+        CommandDispatcher dispatcher = new CommandDispatcher(commands);
+        KeyForgeServer server = switch (config.serverType()) {
+            case NETTY -> new NettyServer(config, dispatcher);
+            case VIRTUAL_THREADS -> new VirtualThreadServer(config, dispatcher);
+        };
         try {
             server.start();
         } catch (InterruptedException | RuntimeException e) {

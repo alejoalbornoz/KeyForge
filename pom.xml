@@ -18,6 +18,7 @@
     <module>keyforge-protocol</module>
     <module>keyforge-storage</module>
     <module>keyforge-server</module>
+    <module>keyforge-bench</module>
   </modules>
 
   <properties>
@@ -30,6 +31,7 @@
     <netty.version>4.2.19.Final</netty.version>
     <slf4j.version>2.0.17</slf4j.version>
     <logback.version>1.5.38</logback.version>
+    <hdrhistogram.version>2.2.2</hdrhistogram.version>
 
     <!-- Test libraries -->
     <junit.version>5.14.4</junit.version>
@@ -58,6 +60,11 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
+        <groupId>io.keyforge</groupId>
+        <artifactId>keyforge-server</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
         <version>${netty.version}</version>
@@ -80,6 +87,11 @@
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>
         <version>${logback.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hdrhistogram</groupId>
+        <artifactId>HdrHistogram</artifactId>
+        <version>${hdrhistogram.version}</version>
       </dependency>
       <dependency>
         <groupId>net.jqwik</groupId>

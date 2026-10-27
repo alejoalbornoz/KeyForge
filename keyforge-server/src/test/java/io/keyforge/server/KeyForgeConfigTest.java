@@ -23,6 +23,7 @@ class KeyForgeConfigTest {
 
         assertThat(config.port()).isEqualTo(6379);
         assertThat(config.bindAddress()).isEqualTo("0.0.0.0");
+        assertThat(config.serverType()).isEqualTo(ServerType.NETTY);
         assertThat(config.ioThreads()).isZero();
         assertThat(config.maxBulkLength()).isEqualTo(512 * 1024 * 1024);
         assertThat(config.storeSegments()).isEqualTo(256);
@@ -64,6 +65,28 @@ class KeyForgeConfigTest {
     }
 
     @Test
+    void serverTypeComesFromAnySource() throws IOException {
+        Path file = tempDir.resolve("vt.properties");
+        Files.writeString(file, "server.type = virtual-threads");
+
+        assertThat(KeyForgeConfig.load(file, Map.of(), Map.of()).serverType()).isEqualTo(ServerType.VIRTUAL_THREADS);
+        assertThat(KeyForgeConfig.load(null, Map.of("KEYFORGE_SERVER_TYPE", "Virtual-Threads"), Map.of()).serverType())
+                .as("case-insensitive, from the environment")
+                .isEqualTo(ServerType.VIRTUAL_THREADS);
+        assertThat(KeyForgeConfig.fromCommandLine(new String[] {"--server.type=netty"},
+                Map.of("KEYFORGE_SERVER_TYPE", "virtual-threads")).serverType())
+                .as("command line beats environment")
+                .isEqualTo(ServerType.NETTY);
+    }
+
+    @Test
+    void rejectsUnknownServerTypes() {
+        assertThatThrownBy(() -> KeyForgeConfig.load(null, Map.of(), Map.of("server.type", "epoll")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Property 'server.type' must be one of [netty, virtual-threads], got 'epoll'");
+    }
+
+    @Test
     void environmentVariableNames() {
         assertThat(KeyForgeConfig.environmentVariable("server.io-threads")).isEqualTo("KEYFORGE_SERVER_IO_THREADS");
         assertThat(KeyForgeConfig.environmentVariable("store.active-expire-interval-ms"))
@@ -91,7 +114,7 @@ class KeyForgeConfigTest {
 
     @Test
     void propertiesRoundTrip() {
-        KeyForgeConfig config = KeyForgeConfig.defaults().withPort(1234);
+        KeyForgeConfig config = KeyForgeConfig.defaults().withPort(1234).withServerType(ServerType.VIRTUAL_THREADS);
 
         assertThat(KeyForgeConfig.load(null, Map.of(), config.toProperties())).isEqualTo(config);
     }

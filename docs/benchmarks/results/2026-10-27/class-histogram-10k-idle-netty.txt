@@ -1,0 +1,40 @@
+1:
+ num     #instances         #bytes  class name (module)
+-------------------------------------------------------
+   1:         30001        1920064  io.netty.channel.DefaultChannelHandlerContext
+   2:         19437        1387368  [B (java.base@25.0.4.1)
+   3:         10000        1120000  io.netty.channel.socket.nio.NioSocketChannel
+   4:         10000        1120000  sun.nio.ch.SocketChannelImpl (java.base@25.0.4.1)
+   5:         52145         834320  java.lang.Object (java.base@25.0.4.1)
+   6:         20276         648832  java.util.concurrent.locks.ReentrantLock$NonfairSync (java.base@25.0.4.1)
+   7:         20011         640352  java.net.InetAddress$InetAddressHolder (java.base@25.0.4.1)
+   8:         10001         640064  io.netty.channel.ChannelOutboundBuffer
+   9:         10001         640064  io.netty.channel.DefaultChannelPipeline$HeadContext
+  10:         10001         640064  io.netty.channel.DefaultChannelPipeline$TailContext
+  11:         10000         640000  io.netty.channel.socket.nio.NioSocketChannel$NioSocketChannelConfig
+  12:          3944         509584  java.lang.Class (java.base@25.0.4.1)
+  13:         15883         508256  java.util.concurrent.ConcurrentHashMap$Node (java.base@25.0.4.1)
+  14:         20006         480144  java.net.Inet4Address (java.base@25.0.4.1)
+  15:         10001         480048  io.netty.channel.AbstractChannel$CloseFuture
+  16:         10001         480048  io.netty.channel.DefaultChannelId
+  17:         10001         480048  io.netty.channel.DefaultChannelPipeline
+  18:         20002         480048  io.netty.channel.VoidChannelPromise
+  19:         20002         480048  java.net.InetSocketAddress$InetSocketAddressHolder (java.base@25.0.4.1)
+  20:         10001         480048  sun.nio.ch.SelectionKeyImpl (java.base@25.0.4.1)
+  21:         10000         480000  io.keyforge.server.netty.RespRequestFrameDecoder
+  22:         10000         480000  sun.nio.ch.SocketAdaptor (java.base@25.0.4.1)
+  23:          3872         450224  [Ljava.lang.Object; (java.base@25.0.4.1)
+  24:         18527         444648  java.lang.String (java.base@25.0.4.1)
+  25:         12702         406464  java.util.HashMap$Node (java.base@25.0.4.1)
+  26:         10005         400200  java.io.FileDescriptor (java.base@25.0.4.1)
+  27:         10000         400000  io.keyforge.protocol.RespRequestDecoder
+  28:         10000         400000  io.netty.channel.socket.nio.NioSocketChannel$NioSocketChannelUnsafe
+  29:         20276         324416  java.util.concurrent.locks.ReentrantLock (java.base@25.0.4.1)
+  30:         10001         320032  io.netty.channel.AdaptiveRecvByteBufAllocator
+  31:         10001         320032  io.netty.channel.nio.NioIoHandler$DefaultNioRegistration
+  32:         20002         320032  java.net.InetSocketAddress (java.base@25.0.4.1)
+  33:         10001         320032  sun.nio.ch.DummySocketImpl (java.base@25.0.4.1)
+  34:         10000         320000  io.keyforge.server.command.ClientSession
+  35:            79         286032  [J (java.base@25.0.4.1)
+  36:         10001         240024  [Ljava.nio.channels.SelectionKey; (java.base@25.0.4.1)
+  37:         10001         240024  io.netty.channel.SingleThreadIoEventLoop$IoRegistrationWrapper

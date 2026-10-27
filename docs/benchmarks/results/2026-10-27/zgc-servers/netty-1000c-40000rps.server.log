@@ -1,0 +1,11 @@
+[0.039s][info][gc] Using The Z Garbage Collector
+21:54:39.755 INFO  [main] [node-1] io.keyforge.server.KeyForgeMain - Starting KeyForge 0.1.0-SNAPSHOT with {node.id=node-1, server.bind=0.0.0.0, server.port=6379, server.type=netty, server.io-threads=0, protocol.max-bulk-length=536870912, protocol.max-array-length=1048576, store.segments=256, store.active-expire-interval-ms=100}
+21:54:40.837 INFO  [main] [node-1] io.keyforge.server.KeyForgeMain - Ready to accept connections on 0.0.0.0:6379
+[3.986s][info][gc] GC(0) Major Collection (Diagnostic Command)
+[4.334s][info][gc] GC(0) Major Collection (Diagnostic Command) 90M(4%)->32M(2%) 0.348s
+[12.207s][info][gc] GC(1) Major Collection (Diagnostic Command)
+[12.510s][info][gc] GC(1) Major Collection (Diagnostic Command) 38M(2%)->34M(2%) 0.303s
+[22.203s][info][gc] GC(2) Major Collection (Warmup)
+[22.813s][info][gc] GC(2) Major Collection (Warmup) 206M(10%)->62M(3%) 0.610s
+[38.625s][info][gc] GC(3) Major Collection (Warmup)
+[38.986s][info][gc] GC(3) Major Collection (Warmup) 410M(20%)->60M(3%) 0.361s

@@ -39,6 +39,7 @@ public final class KeyForgeMain {
             node.close();
         }));
         log.info("Ready to accept connections on {}:{}", config.bindAddress(), node.port());
-        // Event-loop threads are non-daemon and keep the JVM alive until the shutdown hook closes the node.
+        // The server's event-loop threads (Netty) or accept thread (virtual threads) are non-daemon and keep the JVM
+        // alive until the shutdown hook closes the node.
     }
 }
