@@ -1,0 +1,11 @@
+target/
+*.class
+*.log
+.jqwik-database
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.DS_Store

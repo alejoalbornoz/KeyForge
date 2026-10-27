@@ -1,0 +1,98 @@
+package io.keyforge.server;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+class KeyForgeConfigTest {
+
+    @TempDir
+    Path tempDir;
+
+    @Test
+    void defaults() {
+        KeyForgeConfig config = KeyForgeConfig.defaults();
+
+        assertThat(config.port()).isEqualTo(6379);
+        assertThat(config.bindAddress()).isEqualTo("0.0.0.0");
+        assertThat(config.ioThreads()).isZero();
+        assertThat(config.maxBulkLength()).isEqualTo(512 * 1024 * 1024);
+        assertThat(config.storeSegments()).isEqualTo(256);
+        assertThat(config.activeExpireInterval()).isEqualTo(Duration.ofMillis(100));
+    }
+
+    @Test
+    void fileThenEnvironmentThenOverrides() throws IOException {
+        Path file = tempDir.resolve("keyforge.properties");
+        Files.writeString(file, """
+                server.port = 7000
+                server.io-threads = 2
+                store.segments = 64
+                """);
+        Map<String, String> environment = Map.of(
+                "KEYFORGE_SERVER_IO_THREADS", "4",
+                "KEYFORGE_STORE_SEGMENTS", "128",
+                "UNRELATED", "ignored");
+
+        KeyForgeConfig config = KeyForgeConfig.load(file, environment, Map.of("store.segments", "32"));
+
+        assertThat(config.port()).as("from file").isEqualTo(7000);
+        assertThat(config.ioThreads()).as("environment beats file").isEqualTo(4);
+        assertThat(config.storeSegments()).as("override beats environment").isEqualTo(32);
+    }
+
+    @Test
+    void parsesCommandLineOptions() throws IOException {
+        Path file = tempDir.resolve("node.properties");
+        Files.writeString(file, "node.id=n7\n");
+
+        KeyForgeConfig config = KeyForgeConfig.fromCommandLine(
+                new String[] {"--config", file.toString(), "--server.port=6400", "--server.bind", "127.0.0.1"},
+                Map.of());
+
+        assertThat(config.nodeId()).isEqualTo("n7");
+        assertThat(config.port()).isEqualTo(6400);
+        assertThat(config.bindAddress()).isEqualTo("127.0.0.1");
+    }
+
+    @Test
+    void environmentVariableNames() {
+        assertThat(KeyForgeConfig.environmentVariable("server.io-threads")).isEqualTo("KEYFORGE_SERVER_IO_THREADS");
+        assertThat(KeyForgeConfig.environmentVariable("store.active-expire-interval-ms"))
+                .isEqualTo("KEYFORGE_STORE_ACTIVE_EXPIRE_INTERVAL_MS");
+    }
+
+    @Test
+    void rejectsUnknownProperties() {
+        assertThatThrownBy(() -> KeyForgeConfig.fromCommandLine(new String[] {"--server.prot=1"}, Map.of()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unknown property 'server.prot'");
+    }
+
+    @Test
+    void rejectsInvalidValues() {
+        assertThatThrownBy(() -> KeyForgeConfig.load(null, Map.of(), Map.of("server.port", "70000")))
+                .hasMessage("Property 'server.port' must be between 0 and 65535");
+        assertThatThrownBy(() -> KeyForgeConfig.load(null, Map.of("KEYFORGE_SERVER_PORT", "abc"), Map.of()))
+                .hasMessage("Property 'server.port' must be an integer, got 'abc'");
+        assertThatThrownBy(() -> KeyForgeConfig.load(null, Map.of(), Map.of("store.segments", "100")))
+                .hasMessageContaining("power of two");
+        assertThatThrownBy(() -> KeyForgeConfig.fromCommandLine(new String[] {"--server.port"}, Map.of()))
+                .hasMessage("Missing value for '--server.port'");
+    }
+
+    @Test
+    void propertiesRoundTrip() {
+        KeyForgeConfig config = KeyForgeConfig.defaults().withPort(1234);
+
+        assertThat(KeyForgeConfig.load(null, Map.of(), config.toProperties())).isEqualTo(config);
+    }
+}
