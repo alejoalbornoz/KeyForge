@@ -5,15 +5,15 @@ import java.time.InstantSource;
 import java.util.concurrent.atomic.AtomicLong;
 
 /** A clock that only moves when a test says so. */
-final class ManualClock implements InstantSource {
+public final class ManualClock implements InstantSource {
 
     private final AtomicLong millis;
 
-    ManualClock(long startMillis) {
+    public ManualClock(long startMillis) {
         millis = new AtomicLong(startMillis);
     }
 
-    void advance(long deltaMillis) {
+    public void advance(long deltaMillis) {
         millis.addAndGet(deltaMillis);
     }
 

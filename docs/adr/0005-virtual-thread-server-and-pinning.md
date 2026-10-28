@@ -98,7 +98,8 @@ initialization still pins, and that one-off startup effect is not what the test 
   path today, and the test above catches regressions.
 - For Phase 3: blocking *file* I/O does not unmount a virtual thread either. The JDK compensates by temporarily adding
   carriers. The WAL's `fsync` path needs that in mind (for example a dedicated platform thread for group commit) rather
-  than an `fsync` per request on connection threads.
+  than an `fsync` per request on connection threads. Phase 3 did so: the LSM engine performs all WAL writes and fsyncs
+  on its own writer thread ([ADR 0006](0006-lsm-storage-engine.md), [ADR 0007](0007-wal-fsync-policies-and-recovery.md)).
 
 ## Alternatives considered
 

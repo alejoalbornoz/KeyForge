@@ -14,7 +14,8 @@
   <name>KeyForge :: Bench</name>
   <description>
     Load generator for comparing server implementations: open-loop RESP traffic over many connections, latency in
-    HdrHistogram corrected for coordinated omission, and server memory, threads and CPU sampled from /proc.
+    HdrHistogram corrected for coordinated omission, and server memory, threads and CPU sampled from /proc. Also JMH
+    microbenchmarks of the LSM storage engine (put, get, scan).
   </description>
 
   <properties>
@@ -51,6 +52,16 @@
       <artifactId>HdrHistogram</artifactId>
     </dependency>
 
+    <!-- JMH microbenchmarks of the storage engine (io.keyforge.bench.jmh). -->
+    <dependency>
+      <groupId>io.keyforge</groupId>
+      <artifactId>keyforge-storage</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+    </dependency>
+
     <!-- The integration test drives both real servers in-process. -->
     <dependency>
       <groupId>io.keyforge</groupId>
@@ -66,6 +77,21 @@
 
   <build>
     <plugins>
+      <!-- JMH generates its benchmark harness with an annotation processor. Since JDK 23 javac only runs processors
+           that are configured explicitly. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.openjdk.jmh</groupId>
+              <artifactId>jmh-generator-annprocess</artifactId>
+              <version>${jmh.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>

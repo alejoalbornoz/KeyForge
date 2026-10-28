@@ -1,0 +1,412 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: C:\Program Files\Eclipse Adoptium\jdk-25.0.5.8-hotspot\bin\java.exe
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: io.keyforge.bench.jmh.LsmPutBenchmark.put
+# Parameters: (fsyncPolicy = group-commit, valueSize = 100)
+
+# Run progress: 0,00% complete, ETA 00:02:40
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+26244,190 ops/s
+# Warmup Iteration   2: 28580,135 ops/s
+# Warmup Iteration   3: 28540,847 ops/s
+Iteration   1: 29537,566 ops/s
+Iteration   2: 30429,529 ops/s
+Iteration   3: 29915,337 ops/s
+Iteration   4: 28239,882 ops/s
+Iteration   5: 31107,357 ops/s
+
+
+Result "io.keyforge.bench.jmh.LsmPutBenchmark.put":
+  29845,934 ±(99.9%) 4134,327 ops/s [Average]
+  (min, avg, max) = (28239,882, 29845,934, 31107,357), stdev = 1073,672
+  CI (99.9%): [25711,607, 33980,261] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: C:\Program Files\Eclipse Adoptium\jdk-25.0.5.8-hotspot\bin\java.exe
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: io.keyforge.bench.jmh.LsmPutBenchmark.put
+# Parameters: (fsyncPolicy = always, valueSize = 100)
+
+# Run progress: 10,00% complete, ETA 00:02:28
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+1162,275 ops/s
+# Warmup Iteration   2: 1320,579 ops/s
+# Warmup Iteration   3: 1284,741 ops/s
+Iteration   1: 1303,808 ops/s
+Iteration   2: 1273,285 ops/s
+Iteration   3: 1253,937 ops/s
+Iteration   4: 1319,424 ops/s
+Iteration   5: 1304,593 ops/s
+
+
+Result "io.keyforge.bench.jmh.LsmPutBenchmark.put":
+  1291,010 ±(99.9%) 102,679 ops/s [Average]
+  (min, avg, max) = (1253,937, 1291,010, 1319,424), stdev = 26,665
+  CI (99.9%): [1188,330, 1393,689] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: C:\Program Files\Eclipse Adoptium\jdk-25.0.5.8-hotspot\bin\java.exe
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 16 threads, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: io.keyforge.bench.jmh.LsmPutBenchmark.put16Threads
+# Parameters: (fsyncPolicy = group-commit, valueSize = 100)
+
+# Run progress: 20,00% complete, ETA 00:02:11
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+105065,593 ops/s
+# Warmup Iteration   2: 109272,757 ops/s
+# Warmup Iteration   3: 111689,557 ops/s
+Iteration   1: 71991,948 ops/s
+Iteration   2: 111995,700 ops/s
+Iteration   3: 101487,669 ops/s
+Iteration   4: 21694,783 ops/s
+Iteration   5: 66901,511 ops/s
+
+
+Result "io.keyforge.bench.jmh.LsmPutBenchmark.put16Threads":
+  74814,322 ±(99.9%) 135952,628 ops/s [Average]
+  (min, avg, max) = (21694,783, 74814,322, 111995,700), stdev = 35306,466
+  CI (99.9%): [≈ 0, 210766,950] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: C:\Program Files\Eclipse Adoptium\jdk-25.0.5.8-hotspot\bin\java.exe
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 16 threads, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: io.keyforge.bench.jmh.LsmPutBenchmark.put16Threads
+# Parameters: (fsyncPolicy = always, valueSize = 100)
+
+# Run progress: 30,00% complete, ETA 00:01:58
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+8928,959 ops/s
+# Warmup Iteration   2: 6450,856 ops/s
+# Warmup Iteration   3: 11556,067 ops/s
+Iteration   1: 6881,161 ops/s
+Iteration   2: 7526,408 ops/s
+Iteration   3: 7277,843 ops/s
+Iteration   4: 1639,185 ops/s
+Iteration   5: 1494,295 ops/s
+
+
+Result "io.keyforge.bench.jmh.LsmPutBenchmark.put16Threads":
+  4963,779 ±(99.9%) 11975,527 ops/s [Average]
+  (min, avg, max) = (1494,295, 4963,779, 7526,408), stdev = 3110,006
+  CI (99.9%): [≈ 0, 16939,305] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: C:\Program Files\Eclipse Adoptium\jdk-25.0.5.8-hotspot\bin\java.exe
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.keyforge.bench.jmh.LsmGetBenchmark.getHit
+# Parameters: (keyCount = 1000000, location = memtable, valueSize = 100)
+
+# Run progress: 40,00% complete, ETA 00:01:42
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+1937,060 ns/op
+# Warmup Iteration   2: 1975,696 ns/op
+# Warmup Iteration   3: 1927,408 ns/op
+Iteration   1: 1991,554 ns/op
+Iteration   2: 1991,472 ns/op
+Iteration   3: 1939,765 ns/op
+Iteration   4: 1927,183 ns/op
+Iteration   5: 1956,318 ns/op
+
+
+Result "io.keyforge.bench.jmh.LsmGetBenchmark.getHit":
+  1961,259 ±(99.9%) 113,549 ns/op [Average]
+  (min, avg, max) = (1927,183, 1961,259, 1991,554), stdev = 29,488
+  CI (99.9%): [1847,710, 2074,807] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: C:\Program Files\Eclipse Adoptium\jdk-25.0.5.8-hotspot\bin\java.exe
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.keyforge.bench.jmh.LsmGetBenchmark.getHit
+# Parameters: (keyCount = 1000000, location = sstable, valueSize = 100)
+
+# Run progress: 50,00% complete, ETA 00:01:26
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+2580,462 ns/op
+# Warmup Iteration   2: 1879,884 ns/op
+# Warmup Iteration   3: 1867,799 ns/op
+Iteration   1: 1856,579 ns/op
+Iteration   2: 1853,434 ns/op
+Iteration   3: 1848,957 ns/op
+Iteration   4: 1809,747 ns/op
+Iteration   5: 1857,842 ns/op
+
+
+Result "io.keyforge.bench.jmh.LsmGetBenchmark.getHit":
+  1845,312 ±(99.9%) 77,685 ns/op [Average]
+  (min, avg, max) = (1809,747, 1845,312, 1857,842), stdev = 20,175
+  CI (99.9%): [1767,627, 1922,997] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: C:\Program Files\Eclipse Adoptium\jdk-25.0.5.8-hotspot\bin\java.exe
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.keyforge.bench.jmh.LsmGetBenchmark.getMiss
+# Parameters: (keyCount = 1000000, location = memtable, valueSize = 100)
+
+# Run progress: 60,00% complete, ETA 00:01:33
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+170,644 ns/op
+# Warmup Iteration   2: 176,196 ns/op
+# Warmup Iteration   3: 184,268 ns/op
+Iteration   1: 184,008 ns/op
+Iteration   2: 179,424 ns/op
+Iteration   3: 183,675 ns/op
+Iteration   4: 182,905 ns/op
+Iteration   5: 182,957 ns/op
+
+
+Result "io.keyforge.bench.jmh.LsmGetBenchmark.getMiss":
+  182,594 ±(99.9%) 7,061 ns/op [Average]
+  (min, avg, max) = (179,424, 182,594, 184,008), stdev = 1,834
+  CI (99.9%): [175,533, 189,655] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: C:\Program Files\Eclipse Adoptium\jdk-25.0.5.8-hotspot\bin\java.exe
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.keyforge.bench.jmh.LsmGetBenchmark.getMiss
+# Parameters: (keyCount = 1000000, location = sstable, valueSize = 100)
+
+# Run progress: 70,00% complete, ETA 00:01:07
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+73,549 ns/op
+# Warmup Iteration   2: 86,232 ns/op
+# Warmup Iteration   3: 149,724 ns/op
+Iteration   1: 73,516 ns/op
+Iteration   2: 66,230 ns/op
+Iteration   3: 64,363 ns/op
+Iteration   4: 62,001 ns/op
+Iteration   5: 62,057 ns/op
+
+
+Result "io.keyforge.bench.jmh.LsmGetBenchmark.getMiss":
+  65,633 ±(99.9%) 18,275 ns/op [Average]
+  (min, avg, max) = (62,001, 65,633, 73,516), stdev = 4,746
+  CI (99.9%): [47,359, 83,908] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: C:\Program Files\Eclipse Adoptium\jdk-25.0.5.8-hotspot\bin\java.exe
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.keyforge.bench.jmh.LsmScanBenchmark.scan
+# Parameters: (keyCount = 1000000, layout = compacted, scanLength = 100, valueSize = 100)
+
+# Run progress: 80,00% complete, ETA 00:00:46
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+17,910 us/op
+# Warmup Iteration   2: 13,212 us/op
+# Warmup Iteration   3: 12,093 us/op
+Iteration   1: 11,492 us/op
+Iteration   2: 11,457 us/op
+Iteration   3: 13,071 us/op
+Iteration   4: 11,478 us/op
+Iteration   5: 11,562 us/op
+
+
+Result "io.keyforge.bench.jmh.LsmScanBenchmark.scan":
+  11,812 ±(99.9%) 2,714 us/op [Average]
+  (min, avg, max) = (11,457, 11,812, 13,071), stdev = 0,705
+  CI (99.9%): [9,098, 14,526] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: C:\Program Files\Eclipse Adoptium\jdk-25.0.5.8-hotspot\bin\java.exe
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 2 s each
+# Measurement: 5 iterations, 2 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: io.keyforge.bench.jmh.LsmScanBenchmark.scan
+# Parameters: (keyCount = 1000000, layout = layered, scanLength = 100, valueSize = 100)
+
+# Run progress: 90,00% complete, ETA 00:00:23
+# Fork: 1 of 1
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/K:/Programacion2/keyforge/keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+48,660 us/op
+# Warmup Iteration   2: 29,387 us/op
+# Warmup Iteration   3: 28,911 us/op
+Iteration   1: 29,262 us/op
+Iteration   2: 29,115 us/op
+Iteration   3: 28,394 us/op
+Iteration   4: 28,426 us/op
+Iteration   5: 28,678 us/op
+
+
+Result "io.keyforge.bench.jmh.LsmScanBenchmark.scan":
+  28,775 ±(99.9%) 1,527 us/op [Average]
+  (min, avg, max) = (28,394, 28,775, 29,262), stdev = 0,397
+  CI (99.9%): [27,248, 30,302] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:04:01
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                     (fsyncPolicy)  (keyCount)   (layout)  (location)  (scanLength)  (valueSize)   Mode  Cnt      Score        Error  Units
+LsmPutBenchmark.put            group-commit         N/A        N/A         N/A           N/A          100  thrpt    5  29845,934 ±   4134,327  ops/s
+LsmPutBenchmark.put                  always         N/A        N/A         N/A           N/A          100  thrpt    5   1291,010 ±    102,679  ops/s
+LsmPutBenchmark.put16Threads   group-commit         N/A        N/A         N/A           N/A          100  thrpt    5  74814,322 ± 135952,628  ops/s
+LsmPutBenchmark.put16Threads         always         N/A        N/A         N/A           N/A          100  thrpt    5   4963,779 ±  11975,527  ops/s
+LsmGetBenchmark.getHit                  N/A     1000000        N/A    memtable           N/A          100   avgt    5   1961,259 ±    113,549  ns/op
+LsmGetBenchmark.getHit                  N/A     1000000        N/A     sstable           N/A          100   avgt    5   1845,312 ±     77,685  ns/op
+LsmGetBenchmark.getMiss                 N/A     1000000        N/A    memtable           N/A          100   avgt    5    182,594 ±      7,061  ns/op
+LsmGetBenchmark.getMiss                 N/A     1000000        N/A     sstable           N/A          100   avgt    5     65,633 ±     18,275  ns/op
+LsmScanBenchmark.scan                   N/A     1000000  compacted         N/A           100          100   avgt    5     11,812 ±      2,714  us/op
+LsmScanBenchmark.scan                   N/A     1000000    layered         N/A           100          100   avgt    5     28,775 ±      1,527  us/op
+
+Benchmark result is saved to docs/benchmarks/results/2026-10-28/jmh/lsm-jmh.json
+exit 0

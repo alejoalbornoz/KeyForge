@@ -1,6 +1,8 @@
 # ADR 0002: Run commands on I/O threads against a segmented, lock-based store
 
-- Status: accepted
+- Status: accepted; for the LSM engine, the store's internals are superseded by [ADR 0006](0006-lsm-storage-engine.md),
+  which serialises writes on one writer thread and lets reads run lock-free on snapshots. The `KeyValueStore` contract
+  and the command-execution model below are unchanged.
 - Date: 2026-10-27
 - Phase: 1
 

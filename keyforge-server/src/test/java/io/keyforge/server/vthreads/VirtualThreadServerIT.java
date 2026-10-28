@@ -5,11 +5,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.InstantSource;
 import java.util.ArrayList;
@@ -26,9 +29,10 @@ import org.junit.jupiter.api.Timeout;
 
 import io.keyforge.server.KeyForgeConfig;
 import io.keyforge.server.ServerType;
+import io.keyforge.server.TestDirectories;
 import io.keyforge.server.command.CommandDispatcher;
 import io.keyforge.server.command.StandardCommands;
-import io.keyforge.storage.InMemoryKeyValueStore;
+import io.keyforge.storage.lsm.LsmKeyValueStore;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordingStream;
@@ -44,8 +48,9 @@ class VirtualThreadServerIT {
 
     private static final String PINNED = "jdk.VirtualThreadPinned";
 
-    private final InMemoryKeyValueStore store = new InMemoryKeyValueStore(
-            InMemoryKeyValueStore.Options.defaults().withActiveExpireInterval(Duration.ZERO));
+    /** The LSM engine, so that the pinning check also covers the write hand-off and the memory-mapped reads. */
+    private final Path dataDirectory = createDataDirectory();
+    private final LsmKeyValueStore store = LsmKeyValueStore.open(LsmKeyValueStore.Options.defaults(dataDirectory));
     private final VirtualThreadServer server = new VirtualThreadServer(
             KeyForgeConfig.load(null, Map.of(), Map.of(
                     KeyForgeConfig.SERVER_BIND, "127.0.0.1",
@@ -54,9 +59,10 @@ class VirtualThreadServerIT {
             new CommandDispatcher(StandardCommands.create(store, InstantSource.system(), "test", Map.of())));
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws IOException {
         server.close();
         store.close();
+        TestDirectories.deleteRecursively(dataDirectory);
     }
 
     @Test
@@ -227,6 +233,14 @@ class VirtualThreadServerIT {
         }
 
         static void touch() {
+        }
+    }
+
+    private static Path createDataDirectory() {
+        try {
+            return Files.createTempDirectory("keyforge-vt-it");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 }

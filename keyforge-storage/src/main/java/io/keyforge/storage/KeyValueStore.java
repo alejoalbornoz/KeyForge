@@ -5,7 +5,8 @@ import java.util.function.UnaryOperator;
 
 /**
  * A byte-oriented key-value store with optional per-key expiry. The server's command layer is written against this
- * interface only, so engines can be swapped: in-memory today, the LSM tree later.
+ * interface only, so engines can be swapped: the durable LSM tree ({@link io.keyforge.storage.lsm.LsmKeyValueStore}) or
+ * the in-memory hash table ({@link InMemoryKeyValueStore}).
  *
  * <p><b>Ownership.</b> Keys and values are opaque byte arrays. Arrays passed in belong to the store afterwards, and
  * arrays handed out must not be modified: engines skip defensive copies on the hot path.

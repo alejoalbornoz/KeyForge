@@ -32,7 +32,15 @@ public final class KeyForgeMain {
         MDC.put("nodeId", config.nodeId());
         log.info("Starting KeyForge {} with {}", KeyForgeNode.version(), config.toProperties());
 
-        KeyForgeNode node = KeyForgeNode.start(config);
+        KeyForgeNode node;
+        try {
+            node = KeyForgeNode.start(config);
+        } catch (RuntimeException e) {
+            // For example a corrupt or locked data directory, or a port in use.
+            log.error("Cannot start the node", e);
+            System.exit(1);
+            return;
+        }
         Runtime.getRuntime().addShutdownHook(Thread.ofPlatform().name("keyforge-shutdown").unstarted(() -> {
             MDC.put("nodeId", config.nodeId());
             log.info("Shutting down");

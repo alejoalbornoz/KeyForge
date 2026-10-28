@@ -13,8 +13,8 @@
   <artifactId>keyforge-storage</artifactId>
   <name>KeyForge :: Storage</name>
   <description>
-    The KeyValueStore abstraction and its engines. Phase 1 ships the in-memory engine;
-    the LSM-tree engine lands in Phase 3.
+    The KeyValueStore abstraction and its engines: the segmented in-memory engine and the
+    LSM-tree engine (write-ahead log, memtable, SSTables, size-tiered compaction).
   </description>
 
   <dependencies>
@@ -28,4 +28,14 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <!-- CrashRecoveryIT kills child JVMs that write to the LSM store. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 </project>

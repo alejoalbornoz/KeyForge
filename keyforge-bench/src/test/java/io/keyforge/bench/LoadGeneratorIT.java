@@ -98,7 +98,8 @@ class LoadGeneratorIT {
         node = KeyForgeNode.start(KeyForgeConfig.load(null, Map.of(), Map.of(
                 KeyForgeConfig.SERVER_BIND, "127.0.0.1",
                 KeyForgeConfig.SERVER_PORT, "0",
-                KeyForgeConfig.SERVER_TYPE, type.configName())));
+                KeyForgeConfig.SERVER_TYPE, type.configName(),
+                KeyForgeConfig.STORE_DATA_DIR, tempDir.resolve("data-" + type.configName()).toString())));
     }
 
     private LoadGenerator.Measurement run(String... extra) throws IOException, InterruptedException {

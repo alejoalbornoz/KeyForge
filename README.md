@@ -4,10 +4,10 @@ A distributed key-value store written from scratch in Java 25. It speaks the Red
 `redis-cli` and `redis-benchmark` work against it unchanged. Under the hood it will run its own LSM-tree storage engine
 and its own Raft implementation, without any existing storage or consensus library.
 
-> **Status: Phase 2 of 7 complete.** Single-node server: RESP2 protocol, an in-memory store, and two
-> interchangeable network front ends, Netty and virtual threads, compared in
-> [docs/benchmarks/netty-vs-virtual-threads.md](docs/benchmarks/netty-vs-virtual-threads.md).
-> The LSM engine (Phase 3) and Raft (Phase 4) are not built yet.
+> **Status: Phase 3 of 7 complete.** Single-node server: RESP2 protocol, two interchangeable network front ends
+> (Netty and virtual threads, compared in [docs/benchmarks/netty-vs-virtual-threads.md](docs/benchmarks/netty-vs-virtual-threads.md)),
+> and a durable LSM-tree storage engine (write-ahead log, memtable, SSTables, size-tiered compaction) whose data
+> survives `kill -9`. Raft (Phase 4) is not built yet.
 
 ## Build
 
@@ -17,9 +17,10 @@ You need JDK 25. The Maven wrapper downloads Maven 3.9.16 on first use.
 ./mvnw verify
 ```
 
-`verify` runs unit tests, jqwik property tests and the integration tests (both real servers, driven by Jedis and by raw
-sockets, plus short load-generator runs), then builds `keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar`
-and the load generator `keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar`.
+`verify` runs unit tests, jqwik property tests and the integration tests (both real servers on both storage engines,
+driven by Jedis and by raw sockets; crash tests that kill writing processes; short load-generator and JMH runs), then
+builds `keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar` and
+`keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar` (load generator and JMH benchmarks).
 
 ## Run
 
@@ -39,8 +40,14 @@ then command-line overrides:
 | `server.io-threads` | `KEYFORGE_SERVER_IO_THREADS` | `0` | Netty event loops (0 = 2 × CPUs); ignored by `virtual-threads` |
 | `protocol.max-bulk-length` | `KEYFORGE_PROTOCOL_MAX_BULK_LENGTH` | `536870912` | Largest accepted bulk string |
 | `protocol.max-array-length` | `KEYFORGE_PROTOCOL_MAX_ARRAY_LENGTH` | `1048576` | Most arguments per request |
-| `store.segments` | `KEYFORGE_STORE_SEGMENTS` | `256` | Lock segments (power of two) |
-| `store.active-expire-interval-ms` | `KEYFORGE_STORE_ACTIVE_EXPIRE_INTERVAL_MS` | `100` | Active expiry period (0 = off) |
+| `store.engine` | `KEYFORGE_STORE_ENGINE` | `lsm` | Storage engine: `lsm` (durable) or `memory` |
+| `store.data-dir` | `KEYFORGE_STORE_DATA_DIR` | `data` | LSM: directory for WAL, SSTables and manifest |
+| `store.wal.fsync-policy` | `KEYFORGE_STORE_WAL_FSYNC_POLICY` | `group-commit` | LSM: `always` or `group-commit` (see below) |
+| `store.wal.group-commit-interval-ms` | `KEYFORGE_STORE_WAL_GROUP_COMMIT_INTERVAL_MS` | `10` | LSM, group commit: longest time between fsyncs |
+| `store.wal.group-commit-bytes` | `KEYFORGE_STORE_WAL_GROUP_COMMIT_BYTES` | `1048576` | LSM, group commit: unsynced bytes that force an fsync |
+| `store.memtable-size-bytes` | `KEYFORGE_STORE_MEMTABLE_SIZE_BYTES` | `67108864` | LSM: memtable size that triggers a flush |
+| `store.segments` | `KEYFORGE_STORE_SEGMENTS` | `256` | Memory engine: lock segments (power of two) |
+| `store.active-expire-interval-ms` | `KEYFORGE_STORE_ACTIVE_EXPIRE_INTERVAL_MS` | `100` | Memory engine: active expiry period (0 = off) |
 
 Example: `java -jar keyforge-server-...-all.jar --server.port=6380 --server.bind=127.0.0.1`
 
@@ -56,6 +63,23 @@ Both front ends share the RESP codec and the command dispatcher and pass the sam
 ```bash
 java -jar keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar --server.type=virtual-threads
 ```
+
+### Choosing a storage engine
+
+- `lsm` (default): a log-structured merge tree in `store.data-dir`
+  ([ADR 0006](docs/adr/0006-lsm-storage-engine.md), [ADR 0007](docs/adr/0007-wal-fsync-policies-and-recovery.md),
+  [ADR 0008](docs/adr/0008-size-tiered-compaction.md)). Every write is in the write-ahead log before it is acknowledged,
+  so acknowledged writes survive a killed process. The fsync policy decides what survives a crash of the machine:
+  - `always`: a write is acknowledged after an fsync that covers it (concurrent writes share one fsync). Survives power
+    loss.
+  - `group-commit`: a write is acknowledged once written to the OS; the WAL is fsynced every
+    `store.wal.group-commit-interval-ms` or every `store.wal.group-commit-bytes`, whichever comes first. A power loss can
+    lose that last window, like Redis' `appendfsync everysec`.
+- `memory`: the Phase 1 segmented hash table. Nothing is persisted.
+
+On startup the LSM engine replays whatever the write-ahead log holds. A record torn by a crash at the very end of the
+log is truncated; damage anywhere else stops the server with a `CorruptionException` rather than silently dropping
+data. Only one process can open a data directory at a time.
 
 ### Try it with the real Redis tools
 
@@ -78,7 +102,7 @@ docker run --rm redis:7.4 redis-benchmark -h host.docker.internal -t set,get -n 
 | `INCR`, `DECR` | Redis' integer rules and error messages, overflow detected |
 | `MGET`, `MSET` | Atomic with respect to every other command |
 | `DEL`, `EXISTS`, `DBSIZE`, `FLUSHDB [ASYNC\|SYNC]` | |
-| `CONFIG GET pattern...` | Reports `save`, `appendonly`, `port`, `bind`, ... (globs `*` and `?`) |
+| `CONFIG GET pattern...` | Reports `save`, `appendonly` (`yes` on the LSM engine), `dir`, `port`, `bind`, ... (globs `*` and `?`) |
 | `COMMAND [DOCS\|INFO\|COUNT\|LIST]` | `COMMAND`, `DOCS` and `INFO` return an empty array |
 | `HELLO [2]`, `CLIENT SETNAME\|GETNAME\|ID\|SETINFO` | `HELLO 3` fails with `NOPROTO`: only RESP2 is spoken |
 
@@ -90,9 +114,9 @@ Unknown commands, wrong arity and protocol errors use Redis 7's exact wording, f
 | Module | Contents |
 | --- | --- |
 | `keyforge-protocol` | RESP2 encoder and incremental decoders over `ByteBuffer`; no dependencies |
-| `keyforge-storage` | `KeyValueStore` interface and the segmented in-memory engine with lazy and active expiry |
+| `keyforge-storage` | `KeyValueStore` interface; the LSM engine (`io.keyforge.storage.lsm`: WAL, memtable, SSTables, manifest, compaction) and the segmented in-memory engine |
 | `keyforge-server` | Command table and dispatcher, Netty and virtual-thread servers, configuration, `main` |
-| `keyforge-bench` | Load generator: open-loop RESP traffic, HdrHistogram latencies, server memory/threads/CPU from `/proc` |
+| `keyforge-bench` | Load generator (open-loop RESP traffic, HdrHistogram latencies, server memory/threads/CPU from `/proc`) and JMH benchmarks of the LSM engine |
 
 Design decisions are recorded in [docs/adr](docs/adr/README.md).
 
@@ -110,6 +134,19 @@ keyforge-bench/scripts/run-benchmarks.sh
 
 The load generator also runs standalone against any RESP server (`java -jar keyforge-bench-...-all.jar --help`).
 Results and analysis: [docs/benchmarks/netty-vs-virtual-threads.md](docs/benchmarks/netty-vs-virtual-threads.md).
+
+### Storage engine microbenchmarks (JMH)
+
+`LsmPutBenchmark`, `LsmGetBenchmark` and `LsmScanBenchmark` measure the LSM engine directly: put throughput per fsync
+policy with 1 and 16 threads, point lookups (hits and misses, from the memtable and from an SSTable) and 100-key range
+scans (one compacted table or several layered sources), over a million keys:
+
+```bash
+./mvnw -q package -DskipTests
+java -cp keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar org.openjdk.jmh.Main 'io.keyforge.bench.jmh.Lsm'
+```
+
+Results and analysis: [docs/benchmarks/lsm-engine.md](docs/benchmarks/lsm-engine.md).
 
 ## Phase 1 verification
 
@@ -137,3 +174,43 @@ What was checked on 2026-10-27 (Windows 10; jars built with JDK 25.0.5; benchmar
   60k req/s} × both servers, plus sensitivity runs. Every run completed with zero errors and zero dropped connections;
   both servers held 50,000 concurrent connections. Results and analysis are in
   [docs/benchmarks/netty-vs-virtual-threads.md](docs/benchmarks/netty-vs-virtual-threads.md).
+
+## Phase 3 verification
+
+What was checked on 2026-10-28 (Windows 10, JDK 25.0.5; the SIGKILL check in Linux containers on Temurin 25 with the
+`redis:7.4` tools):
+
+- `./mvnw clean verify`: 289 unit and property tests and 70 integration tests pass. For the LSM engine that includes:
+  - `LsmKeyValueStoreModelTest` (jqwik): 150 random sequences of up to 50 operations, checked against a `TreeMap`
+    model after every step (every key, the key count and a full ordered scan). The operations are puts with
+    `NX`/`XX`/TTL, multi-key puts, deletes, read-modify-writes, clock moves, flushes, major compactions, clears,
+    range scans and restarts. Memtables of 600 bytes and eager compaction keep the background threads busy throughout.
+    As a check that the test bites, making flushes drop tombstones unsafely made it fail at once with a deleted key
+    coming back.
+  - `WalTornTailPropertyTest`: a WAL cut at any byte recovers exactly the complete records before the cut. `WalTest`
+    covers torn tails, zero-filled tails, mid-log corruption (fatal) and torn tails in older WALs (fatal).
+  - `LsmKeyValueStoreConcurrencyTest`: no lost `compute` updates, no torn `getAll` or `scan` while memtables rotate and
+    tables merge, and read-your-writes.
+  - `CrashRecoveryIT`: three rounds per fsync policy. A child JVM writes with four threads and is killed without
+    warning (`Process.destroyForcibly`) after a random delay. Every thread's keys must equal the state after its last
+    acknowledged operation, or after the one in flight, and earlier rounds' keys must be untouched.
+  - `KillRecoveryIT`: the real server (`KeyForgeMain`) in a child JVM, Netty with `group-commit` and virtual threads
+    with `always`, killed while four Jedis clients write. After a restart every acknowledged `SET` is present and the
+    `INCR` counter is within one in-flight increment per client.
+  - `KeyForgeServerIT` runs its 14 end-to-end tests on all four combinations of front end and storage engine.
+    `VirtualThreadServerIT`'s pinning check now runs on the LSM engine. `JmhBenchmarksIT` runs every JMH benchmark
+    once.
+- `kill -9` on Linux. The server jar ran in an `eclipse-temurin:25-jdk` container with 4 MiB memtables and its data in
+  a Docker volume:
+  - 100,000 `SET`s through `redis-cli --pipe`, plus `INCR`, `MSET`, `DEL` and overwrites;
+  - `docker kill --signal=KILL` (exit code 137), then a restart: `DBSIZE` was still 100,002, and every probed value,
+    overwrite and delete was intact;
+  - a second SIGKILL in the middle of `redis-benchmark -t set,incr -P 16 -c 20`: the server came back with 299,452
+    keys, no corruption reported and the earlier data untouched;
+  - a clean `docker stop` and start: same key count.
+- JMH (`docs/benchmarks/lsm-engine.md`):
+  - puts from one thread: about 30,000/s with `group-commit` and about 1,300/s with `always` (one fsync each);
+  - puts from 16 threads: 2.5 to 3.7 times as many with `group-commit`, and about 5.5 times as many with `always`
+    until compactions slow the disk;
+  - point lookups: about 1.8 to 2 µs for a hit, 158 ns for an SSTable miss (Bloom filter);
+  - 100-key scans: 12 to 29 µs.

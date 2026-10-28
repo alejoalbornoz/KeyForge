@@ -12,6 +12,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import io.keyforge.storage.lsm.FsyncPolicy;
+
 class KeyForgeConfigTest {
 
     @TempDir
@@ -114,8 +116,60 @@ class KeyForgeConfigTest {
 
     @Test
     void propertiesRoundTrip() {
-        KeyForgeConfig config = KeyForgeConfig.defaults().withPort(1234).withServerType(ServerType.VIRTUAL_THREADS);
+        KeyForgeConfig config = KeyForgeConfig.defaults().withPort(1234).withServerType(ServerType.VIRTUAL_THREADS)
+                .withStoreEngine(StoreEngine.MEMORY).withDataDirectory(Path.of("some", "dir"));
 
         assertThat(KeyForgeConfig.load(null, Map.of(), config.toProperties())).isEqualTo(config);
+    }
+
+    @Test
+    void storageDefaultsToTheDurableLsmEngine() {
+        KeyForgeConfig config = KeyForgeConfig.defaults();
+
+        assertThat(config.storeEngine()).isEqualTo(StoreEngine.LSM);
+        assertThat(config.dataDirectory()).isEqualTo(Path.of("data"));
+        assertThat(config.fsyncPolicy()).isEqualTo(FsyncPolicy.GROUP_COMMIT);
+        assertThat(config.groupCommitInterval()).isEqualTo(Duration.ofMillis(10));
+        assertThat(config.groupCommitBytes()).isEqualTo(1L << 20);
+        assertThat(config.memtableSizeBytes()).isEqualTo(64L << 20);
+    }
+
+    @Test
+    void storagePropertiesComeFromAnySource() throws IOException {
+        Path file = tempDir.resolve("storage.properties");
+        Files.writeString(file, """
+                store.data-dir = /var/lib/keyforge
+                store.memtable-size-bytes = 8388608
+                """);
+        Map<String, String> environment = Map.of(
+                "KEYFORGE_STORE_ENGINE", "Memory",
+                "KEYFORGE_STORE_WAL_FSYNC_POLICY", "always");
+
+        KeyForgeConfig config = KeyForgeConfig.load(file, environment, Map.of(
+                "store.wal.group-commit-interval-ms", "25",
+                "store.wal.group-commit-bytes", "4096"));
+
+        assertThat(config.dataDirectory()).isEqualTo(Path.of("/var/lib/keyforge"));
+        assertThat(config.memtableSizeBytes()).isEqualTo(8L << 20);
+        assertThat(config.storeEngine()).isEqualTo(StoreEngine.MEMORY);
+        assertThat(config.fsyncPolicy()).isEqualTo(FsyncPolicy.ALWAYS);
+        assertThat(config.groupCommitInterval()).isEqualTo(Duration.ofMillis(25));
+        assertThat(config.groupCommitBytes()).isEqualTo(4096);
+        assertThat(KeyForgeConfig.environmentVariable("store.wal.fsync-policy"))
+                .isEqualTo("KEYFORGE_STORE_WAL_FSYNC_POLICY");
+    }
+
+    @Test
+    void rejectsInvalidStorageValues() {
+        assertThatThrownBy(() -> KeyForgeConfig.load(null, Map.of(), Map.of("store.engine", "rocksdb")))
+                .hasMessage("Property 'store.engine' must be one of [lsm, memory], got 'rocksdb'");
+        assertThatThrownBy(() -> KeyForgeConfig.load(null, Map.of(), Map.of("store.wal.fsync-policy", "everysec")))
+                .hasMessage("Property 'store.wal.fsync-policy' must be one of [always, group-commit], got 'everysec'");
+        assertThatThrownBy(() -> KeyForgeConfig.load(null, Map.of(), Map.of("store.memtable-size-bytes", "0")))
+                .hasMessage("Property 'store.memtable-size-bytes' must be positive");
+        assertThatThrownBy(() -> KeyForgeConfig.load(null, Map.of(), Map.of("store.data-dir", " ")))
+                .hasMessage("Property 'store.data-dir' must not be empty");
+        assertThatThrownBy(() -> KeyForgeConfig.load(null, Map.of(), Map.of("store.wal.group-commit-interval-ms",
+                "-1"))).hasMessage("Property 'store.wal.group-commit-interval-ms' must not be negative");
     }
 }

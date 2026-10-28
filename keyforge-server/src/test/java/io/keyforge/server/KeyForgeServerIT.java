@@ -11,6 +11,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +31,8 @@ import org.junit.jupiter.params.AfterParameterizedClassInvocation;
 import org.junit.jupiter.params.BeforeParameterizedClassInvocation;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.keyforge.protocol.RespBulkString;
 import io.keyforge.protocol.RespDecoder;
@@ -47,34 +51,47 @@ import redis.clients.jedis.params.SetParams;
 
 /**
  * End-to-end tests over real sockets, with a real Redis client (Jedis) and with hand-written raw RESP. Every test runs
- * once against each server implementation, which must behave identically.
+ * once against each combination of server implementation and storage engine, which must all behave identically.
  */
 @Timeout(60)
-@ParameterizedClass(name = "{0}")
-@EnumSource(ServerType.class)
+@ParameterizedClass(name = "{0} server, {1} engine")
+@MethodSource("configurations")
 class KeyForgeServerIT {
 
     private static KeyForgeNode node;
+    private static Path dataDirectory;
 
-    @Parameter
+    @Parameter(0)
     ServerType serverType;
+
+    @Parameter(1)
+    StoreEngine storeEngine;
 
     private Jedis jedis;
 
+    static Stream<Arguments> configurations() {
+        return Arrays.stream(ServerType.values())
+                .flatMap(type -> Arrays.stream(StoreEngine.values()).map(engine -> Arguments.of(type, engine)));
+    }
+
     @BeforeParameterizedClassInvocation
-    static void startNode(ServerType serverType) throws InterruptedException {
+    static void startNode(ServerType serverType, StoreEngine storeEngine) throws Exception {
+        dataDirectory = Files.createTempDirectory("keyforge-it");
         KeyForgeConfig config = KeyForgeConfig.load(null, Map.of(), Map.of(
                 KeyForgeConfig.SERVER_BIND, "127.0.0.1",
                 KeyForgeConfig.SERVER_PORT, "0",
                 KeyForgeConfig.SERVER_TYPE, serverType.configName(),
                 KeyForgeConfig.SERVER_IO_THREADS, "4",
+                KeyForgeConfig.STORE_ENGINE, storeEngine.configName(),
+                KeyForgeConfig.STORE_DATA_DIR, dataDirectory.toString(),
                 KeyForgeConfig.STORE_ACTIVE_EXPIRE_INTERVAL_MS, "20"));
         node = KeyForgeNode.start(config);
     }
 
     @AfterParameterizedClassInvocation
-    static void stopNode() {
+    static void stopNode() throws IOException {
         node.close();
+        TestDirectories.deleteRecursively(dataDirectory);
     }
 
     @BeforeEach
@@ -126,7 +143,8 @@ class KeyForgeServerIT {
     @Test
     void configGetAnswersWhatRedisBenchmarkAsks() {
         assertThat(jedis.configGet("save")).isEqualTo(Map.of("save", ""));
-        assertThat(jedis.configGet("appendonly")).isEqualTo(Map.of("appendonly", "no"));
+        assertThat(jedis.configGet("appendonly"))
+                .isEqualTo(Map.of("appendonly", storeEngine == StoreEngine.LSM ? "yes" : "no"));
     }
 
     @Test
