@@ -30,6 +30,8 @@ final class Memtable {
     /** Written by the single inserting thread, read by others. */
     private volatile long approximateBytes;
     private volatile int entryCount;
+    /** Replicated mode: the log entry whose writes are the newest in this memtable or before it. */
+    private volatile LsmKeyValueStore.LogPosition position = LsmKeyValueStore.LogPosition.NONE;
 
     /** @param walNumber the WAL file holding this memtable's writes, or 0 if it was rebuilt by recovery */
     Memtable(long walNumber) {
@@ -38,6 +40,14 @@ final class Memtable {
 
     long walNumber() {
         return walNumber;
+    }
+
+    LsmKeyValueStore.LogPosition position() {
+        return position;
+    }
+
+    void setPosition(LsmKeyValueStore.LogPosition newPosition) {
+        position = newPosition;
     }
 
     long approximateBytes() {

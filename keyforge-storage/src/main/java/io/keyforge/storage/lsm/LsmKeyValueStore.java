@@ -26,6 +26,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 import org.slf4j.Logger;
@@ -68,6 +69,15 @@ import io.keyforge.storage.WriteCondition;
  * <p><b>Expiry.</b> Values carry their absolute expiry instant. Reads treat an expired value as absent. Flushes and
  * compactions turn expired values into tombstones, and a compaction that includes the oldest table drops both
  * tombstones and expired values, since no older version of the key can exist below it.
+ *
+ * <p><b>Replicated mode</b> ({@link Options#replicated()}): the store is the state machine of a replicated log (Raft),
+ * and the log is the source of durability, so there is no WAL. Each write carries the {@link LogPosition} of the log
+ * entry it applies; the store records it atomically with the write, and the manifest persists the position of the
+ * newest flushed memtable ({@link #durablePosition()}). After a crash the store holds exactly the entries up to that
+ * position and the log replays the rest. Expiry is decided at log time, never with the local clock: conditional writes
+ * and read-modify-writes evaluate at the entry's time, and flushes and compactions drop only values expired at the
+ * latest applied log time, which every later entry sees as expired too. Reads hide values expired at the later of the
+ * wall clock and that log time.
  */
 public final class LsmKeyValueStore implements KeyValueStore {
 
@@ -79,6 +89,8 @@ public final class LsmKeyValueStore implements KeyValueStore {
     static final int MAX_WRITES_PER_BATCH = 1024;
     /** The WAL encoding buffer is replaced after a batch that grew it beyond this. */
     private static final int MAX_RETAINED_WAL_BUFFER = 16 << 20;
+    /** Entries per write when {@link #restore} loads a snapshot. */
+    private static final int RESTORE_BATCH = 1024;
 
     /**
      * Construction options.
@@ -92,10 +104,12 @@ public final class LsmKeyValueStore implements KeyValueStore {
      * @param compactionMinThreshold    fewest similar-sized tables that get merged
      * @param compactionSmallTableBytes tables smaller than this all count as one size tier
      * @param clock                     wall clock that decides whether a value has expired
+     * @param replicated                the store applies a replicated log: no WAL, log positions in the manifest, and
+     *                                  expiry decided at log time (see the class comment)
      */
     public record Options(Path directory, FsyncPolicy fsyncPolicy, Duration groupCommitInterval, long groupCommitBytes,
                           long memtableSizeBytes, int compactionMinThreshold, long compactionSmallTableBytes,
-                          InstantSource clock) {
+                          InstantSource clock, boolean replicated) {
 
         public static final FsyncPolicy DEFAULT_FSYNC_POLICY = FsyncPolicy.GROUP_COMMIT;
         public static final Duration DEFAULT_GROUP_COMMIT_INTERVAL = Duration.ofMillis(10);
@@ -126,6 +140,14 @@ public final class LsmKeyValueStore implements KeyValueStore {
             }
         }
 
+        /** A standalone (not replicated) store. */
+        public Options(Path directory, FsyncPolicy fsyncPolicy, Duration groupCommitInterval, long groupCommitBytes,
+                       long memtableSizeBytes, int compactionMinThreshold, long compactionSmallTableBytes,
+                       InstantSource clock) {
+            this(directory, fsyncPolicy, groupCommitInterval, groupCommitBytes, memtableSizeBytes,
+                    compactionMinThreshold, compactionSmallTableBytes, clock, false);
+        }
+
         public static Options defaults(Path directory) {
             return new Options(directory, DEFAULT_FSYNC_POLICY, DEFAULT_GROUP_COMMIT_INTERVAL,
                     DEFAULT_GROUP_COMMIT_BYTES, DEFAULT_MEMTABLE_SIZE_BYTES, DEFAULT_COMPACTION_MIN_THRESHOLD,
@@ -134,28 +156,52 @@ public final class LsmKeyValueStore implements KeyValueStore {
 
         public Options withFsyncPolicy(FsyncPolicy newPolicy) {
             return new Options(directory, newPolicy, groupCommitInterval, groupCommitBytes, memtableSizeBytes,
-                    compactionMinThreshold, compactionSmallTableBytes, clock);
+                    compactionMinThreshold, compactionSmallTableBytes, clock, replicated);
         }
 
         public Options withGroupCommit(Duration newInterval, long newBytes) {
             return new Options(directory, fsyncPolicy, newInterval, newBytes, memtableSizeBytes,
-                    compactionMinThreshold, compactionSmallTableBytes, clock);
+                    compactionMinThreshold, compactionSmallTableBytes, clock, replicated);
         }
 
         public Options withMemtableSizeBytes(long newSize) {
             return new Options(directory, fsyncPolicy, groupCommitInterval, groupCommitBytes, newSize,
-                    compactionMinThreshold, compactionSmallTableBytes, clock);
+                    compactionMinThreshold, compactionSmallTableBytes, clock, replicated);
         }
 
         public Options withCompaction(int newMinThreshold, long newSmallTableBytes) {
             return new Options(directory, fsyncPolicy, groupCommitInterval, groupCommitBytes, memtableSizeBytes,
-                    newMinThreshold, newSmallTableBytes, clock);
+                    newMinThreshold, newSmallTableBytes, clock, replicated);
         }
 
         public Options withClock(InstantSource newClock) {
             return new Options(directory, fsyncPolicy, groupCommitInterval, groupCommitBytes, memtableSizeBytes,
-                    compactionMinThreshold, compactionSmallTableBytes, newClock);
+                    compactionMinThreshold, compactionSmallTableBytes, newClock, replicated);
         }
+
+        public Options withReplicated(boolean newReplicated) {
+            return new Options(directory, fsyncPolicy, groupCommitInterval, groupCommitBytes, memtableSizeBytes,
+                    compactionMinThreshold, compactionSmallTableBytes, clock, newReplicated);
+        }
+    }
+
+    /**
+     * A position in a replicated log: the index of an entry and its log time (epoch milliseconds), at which the entry's
+     * expiry decisions are made. {@link #NONE} is the position of a store that has applied nothing.
+     */
+    public record LogPosition(long index, long timeMillis) {
+
+        public static final LogPosition NONE = new LogPosition(0, 0);
+
+        public LogPosition {
+            if (index < 0 || (index == 0 && timeMillis != 0)) {
+                throw new IllegalArgumentException("invalid log position " + index + "@" + timeMillis);
+            }
+        }
+    }
+
+    /** A live key with its value and absolute expiry ({@link #NO_EXPIRY} for none), as snapshots carry it. */
+    public record StoredEntry(byte[] key, byte[] value, long expireAtMillis) {
     }
 
     private final Options options;
@@ -176,6 +222,10 @@ public final class LsmKeyValueStore implements KeyValueStore {
     private volatile Version current;
     /** Highest sequence number whose write is complete and visible to readers. */
     private volatile long publishedSequence;
+    /** Replicated mode: log time of the newest published write; reads never treat an older time as now. */
+    private volatile long publishedLogTime;
+    /** Replicated mode: the position the manifest records, that of the newest flushed memtable. */
+    private volatile LogPosition durablePosition;
     /** Bumped by {@link #clear()}, so that a flush or compaction that started before it discards its output. */
     private long epoch;
     private boolean compactionRequested = true;
@@ -184,10 +234,13 @@ public final class LsmKeyValueStore implements KeyValueStore {
     private final Thread writer;
     private final Thread flusher;
     private final Thread compactor;
-    /** Forces the WAL under {@link FsyncPolicy#GROUP_COMMIT}; {@code null} under {@link FsyncPolicy#ALWAYS}. */
+    /**
+     * Forces the WAL under {@link FsyncPolicy#GROUP_COMMIT}; {@code null} under {@link FsyncPolicy#ALWAYS} and in
+     * replicated mode.
+     */
     private final Thread walSyncer;
 
-    // Writer-thread state; the WAL reference is also read by the WAL sync thread.
+    // Writer-thread state; the WAL reference is also read by the WAL sync thread. No WAL in replicated mode.
     private volatile WalWriter wal;
     private long lastSequence;
     private ByteWriter walBuffer = new ByteWriter(64 * 1024);
@@ -198,6 +251,7 @@ public final class LsmKeyValueStore implements KeyValueStore {
     private volatile boolean stopBackground;
     private volatile boolean stopWalSyncer;
     private volatile boolean writerExited;
+    private volatile boolean skipFinalFlush;
     private volatile Throwable failure;
 
     private LsmKeyValueStore(Options options, DataDirectory directory, Recovered recovered) {
@@ -211,14 +265,18 @@ public final class LsmKeyValueStore implements KeyValueStore {
         this.wal = recovered.wal();
         this.lastSequence = recovered.lastSequence();
         this.publishedSequence = recovered.lastSequence();
-        this.current = new Version(new Memtable(wal.number()), List.of(), recovered.tables());
+        this.durablePosition = recovered.position();
+        this.publishedLogTime = recovered.position().timeMillis();
+        Memtable active = new Memtable(walNumber());
+        active.setPosition(recovered.position());
+        this.current = new Version(active, List.of(), recovered.tables());
         recovered.tables().forEach(SSTable::release);
 
         Map<String, String> mdc = MDC.getCopyOfContextMap();
         writer = newThread("keyforge-lsm-writer", mdc, this::runWriter);
         flusher = newThread("keyforge-lsm-flush", mdc, this::runFlusher);
         compactor = newThread("keyforge-lsm-compaction", mdc, this::runCompactor);
-        walSyncer = options.fsyncPolicy() == FsyncPolicy.GROUP_COMMIT
+        walSyncer = options.fsyncPolicy() == FsyncPolicy.GROUP_COMMIT && !options.replicated()
                 ? newThread("keyforge-lsm-wal-sync", mdc, this::runWalSyncer)
                 : null;
         writer.start();
@@ -261,7 +319,7 @@ public final class LsmKeyValueStore implements KeyValueStore {
         Version version = acquireVersion();
         try {
             InternalEntry entry = version.find(key, publishedSequence);
-            return entry != null && entry.isLiveAt(clock.millis()) ? entry.value() : null;
+            return entry != null && entry.isLiveAt(readTime()) ? entry.value() : null;
         } finally {
             version.release();
         }
@@ -273,7 +331,7 @@ public final class LsmKeyValueStore implements KeyValueStore {
         Version version = acquireVersion();
         try {
             long snapshot = publishedSequence;
-            long now = clock.millis();
+            long now = readTime();
             List<byte[]> values = new ArrayList<>(keys.size());
             for (byte[] key : keys) {
                 InternalEntry entry = version.find(key, snapshot);
@@ -291,7 +349,7 @@ public final class LsmKeyValueStore implements KeyValueStore {
         Version version = acquireVersion();
         try {
             long snapshot = publishedSequence;
-            long now = clock.millis();
+            long now = readTime();
             int existing = 0;
             for (byte[] key : keys) {
                 InternalEntry entry = version.find(key, snapshot);
@@ -313,7 +371,7 @@ public final class LsmKeyValueStore implements KeyValueStore {
     public long size() {
         Version version = acquireVersion();
         try {
-            long now = clock.millis();
+            long now = readTime();
             long count = 0;
             Iterator<InternalEntry> entries = version.iterator(null, null, publishedSequence);
             while (entries.hasNext()) {
@@ -337,7 +395,7 @@ public final class LsmKeyValueStore implements KeyValueStore {
         }
         Version version = acquireVersion();
         try {
-            long now = clock.millis();
+            long now = readTime();
             List<KeyValue> result = new ArrayList<>(Math.min(limit, 1024));
             Iterator<InternalEntry> entries = version.iterator(fromInclusive, toExclusive, publishedSequence);
             while (result.size() < limit && entries.hasNext()) {
@@ -390,7 +448,105 @@ public final class LsmKeyValueStore implements KeyValueStore {
     /** Removes every key: switches to an empty memtable and WAL and records an empty table list in the manifest. */
     @Override
     public void clear() {
-        submit(new ClearOp());
+        submit(new ClearOp(null));
+    }
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // Replicated writes: each applies one log entry, decides expiry at the entry's log time, and records its position
+    // atomically with its effect.
+
+    /** {@link #put(byte[], byte[], long, WriteCondition)} as the effect of the log entry at {@code position}. */
+    public boolean put(LogPosition position, byte[] key, byte[] value, long expireAtMillis, WriteCondition condition) {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(value, "value");
+        Objects.requireNonNull(condition, "condition");
+        return (Boolean) submit(new PutOp(key, value, expireAtMillis, condition), position);
+    }
+
+    /** {@link #putAll(List, List)} as the effect of the log entry at {@code position}. */
+    public void putAll(LogPosition position, List<byte[]> keys, List<byte[]> values) {
+        if (keys.size() != values.size()) {
+            throw new IllegalArgumentException(keys.size() + " keys but " + values.size() + " values");
+        }
+        keys.forEach(key -> Objects.requireNonNull(key, "key"));
+        values.forEach(value -> Objects.requireNonNull(value, "value"));
+        submit(new PutAllOp(keys, values), position);
+    }
+
+    /** {@link #compute(byte[], UnaryOperator)} as the effect of the log entry at {@code position}. */
+    public byte[] compute(LogPosition position, byte[] key, UnaryOperator<byte[]> remapping) {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(remapping, "remapping");
+        return (byte[]) submit(new ComputeOp(key, remapping), position);
+    }
+
+    /** {@link #delete(List)} as the effect of the log entry at {@code position}. */
+    public int delete(LogPosition position, List<byte[]> keys) {
+        keys.forEach(key -> Objects.requireNonNull(key, "key"));
+        return (Integer) submit(new DeleteOp(keys), position);
+    }
+
+    /** {@link #clear()} as the effect of the log entry at {@code position}; the manifest records it at once. */
+    public void clear(LogPosition position) {
+        Objects.requireNonNull(position, "position");
+        submit(new ClearOp(position), position);
+    }
+
+    /** Records the log entry at {@code position} as applied, for entries that change nothing (a leader's no-op). */
+    public void markApplied(LogPosition position) {
+        submit(new MarkAppliedOp(), position);
+    }
+
+    /** Replicated mode: the position of the newest write that survives a crash. */
+    public LogPosition durablePosition() {
+        return durablePosition;
+    }
+
+    /**
+     * Passes every live key to {@code sink}, from one consistent snapshot, in key order, and returns the log position
+     * that snapshot reflects. Values expired at that position's log time are left out. Meant for the replicated state
+     * machine's snapshots, which run while no write is in flight.
+     */
+    public LogPosition export(Consumer<StoredEntry> sink) {
+        Version version = acquireVersion();
+        try {
+            long snapshot = publishedSequence;
+            LogPosition position = version.active.position();
+            long now = options.replicated() ? position.timeMillis() : clock.millis();
+            Iterator<InternalEntry> entries = version.iterator(null, null, snapshot);
+            while (entries.hasNext()) {
+                InternalEntry entry = entries.next();
+                if (entry.isLiveAt(now)) {
+                    sink.accept(new StoredEntry(entry.key(), entry.value(), entry.expireAt()));
+                }
+            }
+            return position;
+        } finally {
+            version.release();
+        }
+    }
+
+    /**
+     * Replaces the whole contents with {@code entries} (distinct keys), which reflect the log up to {@code position}:
+     * clears the store, durably forgetting its position, loads the entries, then records {@code position} and flushes.
+     * A crash part-way leaves a store at position zero, which the caller restores again.
+     */
+    public void restore(LogPosition position, Iterator<StoredEntry> entries) {
+        Objects.requireNonNull(position, "position");
+        clear(LogPosition.NONE);
+        List<StoredEntry> batch = new ArrayList<>(RESTORE_BATCH);
+        while (entries.hasNext()) {
+            batch.add(entries.next());
+            if (batch.size() == RESTORE_BATCH) {
+                submit(new LoadOp(List.copyOf(batch)), null);
+                batch.clear();
+            }
+        }
+        if (!batch.isEmpty()) {
+            submit(new LoadOp(List.copyOf(batch)), null);
+        }
+        markApplied(position);
+        flush();
     }
 
     /** Flushes the active memtable to an SSTable and waits until no memtable is waiting for a flush. */
@@ -432,6 +588,14 @@ public final class LsmKeyValueStore implements KeyValueStore {
         if (!closeStarted.compareAndSet(false, true)) {
             return;
         }
+        if (options.replicated() && failure == null && !skipFinalFlush) {
+            // Without a WAL the memtable would be rebuilt from the log; flushing makes the restart quick.
+            try {
+                flush();
+            } catch (RuntimeException e) {
+                log.warn("Could not flush before closing; the log will be replayed instead", e);
+            }
+        }
         closed = true;
         writeQueue.add(new WriteRequest(new StopOp()));
         join(writer);
@@ -465,6 +629,12 @@ public final class LsmKeyValueStore implements KeyValueStore {
 
     // Package-private views for tests.
 
+    /** Closes without the final flush of replicated mode, which loses the memtable as a crash would. */
+    void closeWithoutFlush() {
+        skipFinalFlush = true;
+        close();
+    }
+
     List<TableStats> tableStats() {
         return current.tables.stream().map(SSTable::stats).toList();
     }
@@ -478,7 +648,7 @@ public final class LsmKeyValueStore implements KeyValueStore {
     }
 
     long unsyncedWalBytes() {
-        return wal.unsyncedBytes();
+        return wal == null ? 0 : wal.unsyncedBytes();
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -499,7 +669,13 @@ public final class LsmKeyValueStore implements KeyValueStore {
     private record DeleteOp(List<byte[]> keys) implements WriteOp {
     }
 
-    private record ClearOp() implements WriteOp {
+    private record ClearOp(LogPosition position) implements WriteOp {
+    }
+
+    private record MarkAppliedOp() implements WriteOp {
+    }
+
+    private record LoadOp(List<StoredEntry> entries) implements WriteOp {
     }
 
     private record FlushOp() implements WriteOp {
@@ -511,12 +687,19 @@ public final class LsmKeyValueStore implements KeyValueStore {
     /** A queued write. The writer sets {@code result} or {@code error}, then completes it once the batch is durable. */
     private static final class WriteRequest {
         final WriteOp op;
+        /** The log entry this write applies, or {@code null} for a write outside any log. */
+        final LogPosition position;
         final CompletableFuture<Object> future = new CompletableFuture<>();
         Object result;
         Throwable error;
 
         WriteRequest(WriteOp op) {
+            this(op, null);
+        }
+
+        WriteRequest(WriteOp op, LogPosition position) {
             this.op = op;
+            this.position = position;
         }
 
         void complete() {
@@ -529,8 +712,12 @@ public final class LsmKeyValueStore implements KeyValueStore {
     }
 
     private Object submit(WriteOp op) {
+        return submit(op, null);
+    }
+
+    private Object submit(WriteOp op, LogPosition position) {
         ensureUsable();
-        WriteRequest request = new WriteRequest(op);
+        WriteRequest request = new WriteRequest(op, position);
         writeQueue.add(request);
         // The writer may have exited between the check and the add; then nobody would ever complete the request.
         if (writerExited && writeQueue.remove(request)) {
@@ -573,8 +760,10 @@ public final class LsmKeyValueStore implements KeyValueStore {
                     rotate();
                 }
             }
-            wal.sync();
-            wal.close();
+            if (wal != null) {
+                wal.sync();
+                wal.close();
+            }
         } catch (Throwable t) {
             fail(t);
             Throwable cause = failure;
@@ -599,28 +788,37 @@ public final class LsmKeyValueStore implements KeyValueStore {
 
     private void apply(WriteRequest request) throws IOException, InterruptedException {
         switch (request.op) {
-            case ClearOp _ -> {
+            case ClearOp clear -> {
                 commit();
-                clearAll();
+                clearAll(clear.position());
             }
             case FlushOp _ -> {
                 commit();
-                if (!current.active.isEmpty()) {
+                // An empty memtable is still flushed when it carries a newer log position, to make that durable.
+                if (!current.active.isEmpty() || !current.active.position().equals(durablePosition)) {
                     rotate();
                 }
             }
             default -> {
+                // A logged write decides expiry at its log time; others at the wall clock.
+                long now = request.position != null ? request.position.timeMillis() : clock.millis();
                 // A failure here (a throwing compute function, a corrupt block) fails this write only.
                 try {
                     request.result = switch (request.op) {
-                        case PutOp op -> applyPut(op);
+                        case PutOp op -> applyPut(op, now);
                         case PutAllOp op -> applyPutAll(op);
-                        case ComputeOp op -> applyCompute(op);
-                        case DeleteOp op -> applyDelete(op);
+                        case ComputeOp op -> applyCompute(op, now);
+                        case DeleteOp op -> applyDelete(op, now);
+                        case LoadOp op -> applyLoad(op);
+                        case MarkAppliedOp _ -> null;
                         default -> throw new IllegalStateException("Unexpected write " + request.op);
                     };
                 } catch (RuntimeException e) {
                     request.error = e;
+                }
+                if (request.position != null) {
+                    // In the same memtable as the write, so a flush makes both durable or neither.
+                    current.active.setPosition(request.position);
                 }
             }
         }
@@ -628,9 +826,9 @@ public final class LsmKeyValueStore implements KeyValueStore {
         pending.add(request);
     }
 
-    private Object applyPut(PutOp op) {
+    private Object applyPut(PutOp op, long now) {
         if (op.condition() != WriteCondition.ALWAYS) {
-            boolean live = latestLive(op.key(), clock.millis()) != null;
+            boolean live = latestLive(op.key(), now) != null;
             if (op.condition() == WriteCondition.IF_ABSENT ? live : !live) {
                 return Boolean.FALSE;
             }
@@ -655,8 +853,8 @@ public final class LsmKeyValueStore implements KeyValueStore {
         return null;
     }
 
-    private Object applyCompute(ComputeOp op) {
-        InternalEntry existing = latestLive(op.key(), clock.millis());
+    private Object applyCompute(ComputeOp op, long now) {
+        InternalEntry existing = latestLive(op.key(), now);
         byte[] updated = op.remapping().apply(existing == null ? null : existing.value());
         long seq = lastSequence + 1;
         if (updated == null) {
@@ -670,8 +868,7 @@ public final class LsmKeyValueStore implements KeyValueStore {
         return updated;
     }
 
-    private Object applyDelete(DeleteOp op) {
-        long now = clock.millis();
+    private Object applyDelete(DeleteOp op, long now) {
         long seq = lastSequence + 1;
         TreeSet<byte[]> seen = new TreeSet<>(Arrays::compareUnsigned);
         List<InternalEntry> tombstones = new ArrayList<>();
@@ -684,6 +881,19 @@ public final class LsmKeyValueStore implements KeyValueStore {
             append(seq, tombstones);
         }
         return tombstones.size();
+    }
+
+    private Object applyLoad(LoadOp op) {
+        if (op.entries().isEmpty()) {
+            return null;
+        }
+        long seq = lastSequence + 1;
+        List<InternalEntry> entries = new ArrayList<>(op.entries().size());
+        for (StoredEntry entry : op.entries()) {
+            entries.add(InternalEntry.put(entry.key(), seq, entry.value(), entry.expireAtMillis()));
+        }
+        append(seq, entries);
+        return null;
     }
 
     /** The newest live version, including writes of the current batch that are not yet published. */
@@ -699,7 +909,9 @@ public final class LsmKeyValueStore implements KeyValueStore {
 
     /** Encodes one WAL record for a write and inserts its entries into the active memtable, unpublished. */
     private void append(long seq, List<InternalEntry> entries) {
-        WalRecord.encode(walBuffer, seq, entries);
+        if (wal != null) {
+            WalRecord.encode(walBuffer, seq, entries);
+        }
         Memtable active = current.active;
         for (InternalEntry entry : entries) {
             active.add(entry);
@@ -723,6 +935,7 @@ public final class LsmKeyValueStore implements KeyValueStore {
                 LockSupport.unpark(walSyncer);
             }
         }
+        publishedLogTime = current.active.position().timeMillis();
         publishedSequence = lastSequence;
         for (WriteRequest request : pending) {
             request.complete();
@@ -763,7 +976,9 @@ public final class LsmKeyValueStore implements KeyValueStore {
     /** Makes the active memtable immutable and starts a new memtable and WAL. Stalls while too many await a flush. */
     private void rotate() throws IOException, InterruptedException {
         // A stall can last; under group commit, do not leave acknowledged writes unsynced for that long.
-        wal.sync();
+        if (wal != null) {
+            wal.sync();
+        }
         versionLock.lock();
         try {
             boolean stalled = false;
@@ -785,31 +1000,52 @@ public final class LsmKeyValueStore implements KeyValueStore {
             List<Memtable> immutables = new ArrayList<>(version.immutables.size() + 1);
             immutables.add(version.active);
             immutables.addAll(version.immutables);
-            install(new Version(new Memtable(wal.number()), immutables, version.tables));
+            Memtable next = new Memtable(walNumber());
+            next.setPosition(version.active.position());
+            install(new Version(next, immutables, version.tables));
             flushWork.signal();
         } finally {
             versionLock.unlock();
         }
     }
 
-    private void clearAll() throws IOException {
+    /** Empties the store; {@code position} (replicated mode) is the log entry that did it, or none. */
+    private void clearAll(LogPosition position) throws IOException {
         startNewWal();
+        LogPosition cleared = position != null ? position : LogPosition.NONE;
         versionLock.lock();
         try {
             epoch++;
-            directory.writeManifest(new Manifest(nextFileNumber.get(), lastSequence, wal.number(), List.of()));
+            directory.writeManifest(new Manifest(nextFileNumber.get(), lastSequence, minWalNumber(), List.of(),
+                    cleared.index(), cleared.timeMillis()));
+            durablePosition = cleared;
             current.tables.forEach(SSTable::markObsolete);
-            install(new Version(new Memtable(wal.number()), List.of(), List.of()));
+            Memtable empty = new Memtable(walNumber());
+            empty.setPosition(cleared);
+            install(new Version(empty, List.of(), List.of()));
             flushed.signalAll();
         } finally {
             versionLock.unlock();
         }
-        deleteWalsBelow(wal.number());
+        deleteWalsBelow(minWalNumber());
         log.info("Cleared the store");
     }
 
-    /** Syncs and closes the current WAL and opens the next one. */
+    /** The current WAL's number, or 0 when there is no WAL (replicated mode). */
+    private long walNumber() {
+        return wal == null ? 0 : wal.number();
+    }
+
+    /** WALs numbered below this are not needed; without a WAL, none is. */
+    private long minWalNumber() {
+        return wal == null ? nextFileNumber.get() : wal.number();
+    }
+
+    /** Syncs and closes the current WAL and opens the next one; does nothing without a WAL. */
     private void startNewWal() throws IOException {
+        if (wal == null) {
+            return;
+        }
         wal.sync();
         wal.close();
         long number = nextFileNumber.getAndIncrement();
@@ -853,9 +1089,11 @@ public final class LsmKeyValueStore implements KeyValueStore {
     private void flush(Memtable memtable, long startEpoch, boolean bottom) throws IOException {
         long started = System.nanoTime();
         long number = nextFileNumber.getAndIncrement();
+        // Replicated mode drops only what is expired at the memtable's log time, which every later entry agrees on.
+        long now = options.replicated() ? memtable.position().timeMillis() : clock.millis();
         SSTable table = writeTable(directory.tablePath(number), number,
                 new MergingIterator(List.of(memtable.iterator(null, null, Long.MAX_VALUE))), memtable.entryCount(),
-                bottom, clock.millis(), () -> stopBackground);
+                bottom, now, () -> stopBackground);
         boolean installed = false;
         long minWal;
         try {
@@ -873,10 +1111,17 @@ public final class LsmKeyValueStore implements KeyValueStore {
                 }
                 tables.addAll(version.tables);
                 Version next = new Version(version.active, immutables, tables);
-                directory.writeManifest(manifestFor(next));
+                LogPosition previous = durablePosition;
+                durablePosition = memtable.position();
+                try {
+                    directory.writeManifest(manifestFor(next));
+                } catch (IOException | RuntimeException e) {
+                    durablePosition = previous;
+                    throw e;
+                }
                 install(next);
                 installed = true;
-                minWal = next.minWalNumber();
+                minWal = wal == null ? nextFileNumber.get() : next.minWalNumber();
                 flushed.signalAll();
                 compactionRequested = true;
                 compactionWork.signal();
@@ -966,8 +1211,9 @@ public final class LsmKeyValueStore implements KeyValueStore {
             sources.add(input.iterator(null, null));
         }
         long number = nextFileNumber.getAndIncrement();
+        long now = options.replicated() ? current.active.position().timeMillis() : clock.millis();
         SSTable output = writeTable(directory.tablePath(number), number, new MergingIterator(sources), expectedKeys,
-                bottom, clock.millis(), () -> stopBackground);
+                bottom, now, () -> stopBackground);
         boolean installed = false;
         try {
             versionLock.lock();
@@ -1071,8 +1317,11 @@ public final class LsmKeyValueStore implements KeyValueStore {
     }
 
     private Manifest manifestFor(Version version) {
-        return new Manifest(nextFileNumber.get(), publishedSequence, version.minWalNumber(),
-                version.tables.stream().map(Manifest.TableEntry::of).toList());
+        LogPosition position = durablePosition;
+        return new Manifest(nextFileNumber.get(), publishedSequence,
+                wal == null ? nextFileNumber.get() : version.minWalNumber(),
+                version.tables.stream().map(Manifest.TableEntry::of).toList(), position.index(),
+                position.timeMillis());
     }
 
     private void deleteWalsBelow(long minWalNumber) {
@@ -1088,7 +1337,8 @@ public final class LsmKeyValueStore implements KeyValueStore {
     // ---------------------------------------------------------------------------------------------------------------
     // Recovery
 
-    private record Recovered(List<SSTable> tables, WalWriter wal, long lastSequence, long nextFileNumber) {
+    private record Recovered(List<SSTable> tables, WalWriter wal, long lastSequence, long nextFileNumber,
+                             LogPosition position) {
     }
 
     /** Collects replayed WAL records into memtables, starting a new one whenever one fills up. */
@@ -1137,7 +1387,7 @@ public final class LsmKeyValueStore implements KeyValueStore {
                 if (!walNumbers.isEmpty() || !tableNumbers.isEmpty()) {
                     throw new CorruptionException(directory.path() + " holds WAL or SSTable files but no MANIFEST");
                 }
-                manifest = new Manifest(1, 0, 1, List.of());
+                manifest = new Manifest(1, 0, 1, List.of(), 0, 0);
             }
             for (Manifest.TableEntry entry : manifest.tables()) {
                 Path path = directory.tablePath(entry.fileNumber());
@@ -1175,11 +1425,16 @@ public final class LsmKeyValueStore implements KeyValueStore {
                 }
             }
 
-            long walNumber = nextFileNumber++;
-            wal = WalWriter.create(directory.walPath(walNumber), walNumber);
-            directory.sync();
-            directory.writeManifest(new Manifest(nextFileNumber, lastSequence, walNumber,
-                    tables.stream().map(Manifest.TableEntry::of).toList()));
+            // Replicated mode keeps no WAL: whatever the memtable held is replayed from the replicated log.
+            long walNumber = options.replicated() ? 0 : nextFileNumber++;
+            if (!options.replicated()) {
+                wal = WalWriter.create(directory.walPath(walNumber), walNumber);
+                directory.sync();
+            }
+            LogPosition position = new LogPosition(manifest.appliedIndex(), manifest.appliedTime());
+            directory.writeManifest(new Manifest(nextFileNumber, lastSequence,
+                    options.replicated() ? nextFileNumber : walNumber,
+                    tables.stream().map(Manifest.TableEntry::of).toList(), position.index(), position.timeMillis()));
 
             for (long number : walNumbers) {
                 directory.deleteIfExists(directory.walPath(number));
@@ -1193,11 +1448,12 @@ public final class LsmKeyValueStore implements KeyValueStore {
             }
             directory.deleteIfExists(directory.path().resolve(DataDirectory.MANIFEST_TEMP));
 
-            log.info("Opened the LSM store in {}: {} tables, {} WAL records replayed{}, last sequence {}, {} ms",
+            log.info("Opened the LSM store in {}: {} tables, {} WAL records replayed{}, last sequence {}{}, {} ms",
                     directory.path(), tables.size(), replay.records,
                     truncatedBytes > 0 ? " (" + truncatedBytes + " torn bytes truncated)" : "", lastSequence,
+                    options.replicated() ? ", replicated, applied log index " + position.index() : "",
                     (System.nanoTime() - started) / 1_000_000);
-            return new Recovered(List.copyOf(tables), wal, lastSequence, nextFileNumber);
+            return new Recovered(List.copyOf(tables), wal, lastSequence, nextFileNumber, position);
         } catch (IOException | RuntimeException | Error e) {
             tables.forEach(SSTable::release);
             closeQuietly(wal);
@@ -1211,6 +1467,12 @@ public final class LsmKeyValueStore implements KeyValueStore {
 
     // ---------------------------------------------------------------------------------------------------------------
     // Plumbing
+
+    /** The time reads decide expiry at: the wall clock, never earlier than the newest applied log time. */
+    private long readTime() {
+        long now = clock.millis();
+        return options.replicated() ? Math.max(now, publishedLogTime) : now;
+    }
 
     private Version acquireVersion() {
         while (true) {

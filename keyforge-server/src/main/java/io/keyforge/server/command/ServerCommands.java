@@ -13,28 +13,60 @@ import io.keyforge.protocol.RespInteger;
 import io.keyforge.protocol.RespValue;
 
 /**
- * CONFIG and COMMAND. These exist so that standard tools start cleanly: {@code redis-benchmark} reads
+ * CONFIG, COMMAND and INFO. The first two exist so that standard tools start cleanly: {@code redis-benchmark} reads
  * {@code CONFIG GET save} and {@code CONFIG GET appendonly}, and {@code redis-cli} asks for {@code COMMAND DOCS} to
- * build its help.
+ * build its help. {@code INFO raft} shows a cluster node's role, term and log positions.
  */
 final class ServerCommands {
 
     private final Map<String, String> configParameters;
     private final Supplier<CommandTable> commands;
+    private final Supplier<List<InfoSection>> info;
 
     /**
      * @param configParameters what {@code CONFIG GET} reports, keyed by lowercase Redis parameter name
      * @param commands         the table this command is part of, for {@code COMMAND COUNT} and {@code COMMAND LIST}
+     * @param info             the sections {@code INFO} reports
      */
-    ServerCommands(Map<String, String> configParameters, Supplier<CommandTable> commands) {
+    ServerCommands(Map<String, String> configParameters, Supplier<CommandTable> commands,
+                   Supplier<List<InfoSection>> info) {
         this.configParameters = Map.copyOf(configParameters);
         this.commands = commands;
+        this.info = info;
     }
 
     List<CommandSpec> specs() {
         return List.of(
                 new CommandSpec("config", -2, (session, args) -> config(args)),
-                new CommandSpec("command", -1, (session, args) -> command(args)));
+                new CommandSpec("command", -1, (session, args) -> command(args)),
+                new CommandSpec("info", -1, (session, args) -> info(args)));
+    }
+
+    /**
+     * {@code INFO [section ...]}, formatted like Redis: a {@code # Name} header per section, {@code field:value} lines,
+     * \r\n line ends and a blank line between sections. No argument, {@code default}, {@code all} or
+     * {@code everything} select every section; unknown names select nothing.
+     */
+    private RespValue info(byte[][] args) {
+        List<String> wanted = new ArrayList<>();
+        for (int i = 1; i < args.length; i++) {
+            wanted.add(Arguments.utf8(args[i]).toLowerCase(Locale.ROOT));
+        }
+        boolean everything = wanted.isEmpty() || wanted.contains("default") || wanted.contains("all")
+                || wanted.contains("everything");
+        StringBuilder text = new StringBuilder();
+        for (InfoSection section : info.get()) {
+            if (!everything && !wanted.contains(section.name())) {
+                continue;
+            }
+            if (!text.isEmpty()) {
+                text.append("\r\n");
+            }
+            text.append("# ").append(Character.toUpperCase(section.name().charAt(0)))
+                    .append(section.name().substring(1)).append("\r\n");
+            section.fields().forEach((name, value) -> text.append(name).append(':').append(value).append("\r\n"));
+        }
+        return RespBulkString.of(text.toString());
     }
 
     /** Only {@code CONFIG GET parameter [parameter ...]}, with glob patterns ({@code *} and {@code ?}). */

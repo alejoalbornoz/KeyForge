@@ -12,3 +12,9 @@ One file per decision: context, decision, consequences, alternatives considered.
 | [0006](0006-lsm-storage-engine.md) | An LSM engine with one writer thread, sequence-number snapshots and memory-mapped SSTables | 3 |
 | [0007](0007-wal-fsync-policies-and-recovery.md) | WAL records, `always` and `group-commit` fsync policies, and crash recovery that truncates only torn tails | 3 |
 | [0008](0008-size-tiered-compaction.md) | Size-tiered compaction of age-adjacent tables, rather than leveled compaction | 3 |
+| [0009](0009-raft-as-a-pure-state-machine.md) | Raft as a pure state machine (events in, actions out), driven by a two-thread runtime with batched fsync | 4 |
+| [0010](0010-linearizable-reads-with-readindex.md) | Linearizable reads with ReadIndex, not leader leases | 4 |
+| [0011](0011-deterministic-expiry-under-raft.md) | Leader-assigned expiry, log time, and expiry decisions every replica agrees on | 4 |
+| [0012](0012-no-double-wal.md) | The Raft log is the only write-ahead log; the LSM store records its applied position | 4 |
+| [0013](0013-deterministic-simulation-testing.md) | Deterministic simulation testing of Raft | 4 |
+| [0014](0014-grpc-transport-and-client-forwarding.md) | gRPC transport with a bidirectional stream per node pair, and forwarding to the leader | 4 |

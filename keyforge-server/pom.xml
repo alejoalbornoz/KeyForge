@@ -12,7 +12,7 @@
 
   <artifactId>keyforge-server</artifactId>
   <name>KeyForge :: Server</name>
-  <description>Network servers, command registry and command execution.</description>
+  <description>Network servers, command registry and command execution, standalone or as a Raft cluster node.</description>
 
   <properties>
     <main.class>io.keyforge.server.KeyForgeMain</main.class>
@@ -26,6 +26,10 @@
     <dependency>
       <groupId>io.keyforge</groupId>
       <artifactId>keyforge-storage</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.keyforge</groupId>
+      <artifactId>keyforge-raft</artifactId>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>

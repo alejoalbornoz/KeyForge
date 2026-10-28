@@ -4,10 +4,11 @@ A distributed key-value store written from scratch in Java 25. It speaks the Red
 `redis-cli` and `redis-benchmark` work against it unchanged. Under the hood it will run its own LSM-tree storage engine
 and its own Raft implementation, without any existing storage or consensus library.
 
-> **Status: Phase 3 of 7 complete.** Single-node server: RESP2 protocol, two interchangeable network front ends
-> (Netty and virtual threads, compared in [docs/benchmarks/netty-vs-virtual-threads.md](docs/benchmarks/netty-vs-virtual-threads.md)),
-> and a durable LSM-tree storage engine (write-ahead log, memtable, SSTables, size-tiered compaction) whose data
-> survives `kill -9`. Raft (Phase 4) is not built yet.
+> **Status: Phase 4 of 7 complete.** RESP2 protocol, two interchangeable network front ends (Netty and virtual
+> threads, compared in [docs/benchmarks/netty-vs-virtual-threads.md](docs/benchmarks/netty-vs-virtual-threads.md)), a
+> durable LSM-tree storage engine (write-ahead log, memtable, SSTables, size-tiered compaction) whose data survives
+> `kill -9`, and Raft consensus: a node runs standalone or as a member of a replicated cluster with linearizable reads
+> and writes, which keeps serving when its leader is killed.
 
 ## Build
 
@@ -18,7 +19,8 @@ You need JDK 25. The Maven wrapper downloads Maven 3.9.16 on first use.
 ```
 
 `verify` runs unit tests, jqwik property tests and the integration tests (both real servers on both storage engines,
-driven by Jedis and by raw sockets; crash tests that kill writing processes; short load-generator and JMH runs), then
+driven by Jedis and by raw sockets; crash tests that kill writing processes; short load-generator and JMH runs; the
+10,000-seed Raft simulation; Raft clusters over real gRPC), then
 builds `keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar` and
 `keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar` (load generator and JMH benchmarks).
 
@@ -48,6 +50,13 @@ then command-line overrides:
 | `store.memtable-size-bytes` | `KEYFORGE_STORE_MEMTABLE_SIZE_BYTES` | `67108864` | LSM: memtable size that triggers a flush |
 | `store.segments` | `KEYFORGE_STORE_SEGMENTS` | `256` | Memory engine: lock segments (power of two) |
 | `store.active-expire-interval-ms` | `KEYFORGE_STORE_ACTIVE_EXPIRE_INTERVAL_MS` | `100` | Memory engine: active expiry period (0 = off) |
+| `cluster.members` | `KEYFORGE_CLUSTER_MEMBERS` | (empty) | Raft cluster: `id=host:port,...` for every member, this node included (the Raft transport's address); empty = standalone |
+| `raft.bind` | `KEYFORGE_RAFT_BIND` | `0.0.0.0` | Raft: address the gRPC transport listens on (the port comes from this node's entry) |
+| `raft.data-dir` | `KEYFORGE_RAFT_DATA_DIR` | `raft` | Raft: directory for the log, term, vote and snapshots |
+| `raft.election-timeout-ms` | `KEYFORGE_RAFT_ELECTION_TIMEOUT_MS` | `1000` | Raft: shortest election timeout (each is drawn from [t, 2t]) |
+| `raft.heartbeat-interval-ms` | `KEYFORGE_RAFT_HEARTBEAT_INTERVAL_MS` | `100` | Raft: leader heartbeat period |
+| `raft.snapshot-threshold` | `KEYFORGE_RAFT_SNAPSHOT_THRESHOLD` | `100000` | Raft: applied entries between snapshots (and log compactions) |
+| `raft.request-timeout-ms` | `KEYFORGE_RAFT_REQUEST_TIMEOUT_MS` | `5000` | Raft: how long a command waits for its commit, read confirmation or the leader |
 
 Example: `java -jar keyforge-server-...-all.jar --server.port=6380 --server.bind=127.0.0.1`
 
@@ -81,6 +90,39 @@ On startup the LSM engine replays whatever the write-ahead log holds. A record t
 log is truncated; damage anywhere else stops the server with a `CorruptionException` rather than silently dropping
 data. Only one process can open a data directory at a time.
 
+### Running a cluster
+
+Give every node the same `cluster.members`, its own `node.id` and its own directories. Each node then runs Raft
+([ADR 0009](docs/adr/0009-raft-as-a-pure-state-machine.md)) over gRPC
+([ADR 0014](docs/adr/0014-grpc-transport-and-client-forwarding.md)):
+
+```bash
+java -jar keyforge-server-0.1.0-SNAPSHOT-all.jar --node.id=node-1 --server.type=virtual-threads \
+  --cluster.members=node-1=host1:7000,node-2=host2:7000,node-3=host3:7000 \
+  --store.data-dir=/data/store --raft.data-dir=/data/raft
+```
+
+- Clients may talk to any node. Followers forward data commands to the leader and relay its reply, so `redis-cli` and
+  `redis-benchmark` work unchanged against any node. `INFO raft` shows a node's role, term, leader and log positions.
+- Writes return once committed on a majority and applied; reads are linearizable through ReadIndex
+  ([ADR 0010](docs/adr/0010-linearizable-reads-with-readindex.md)).
+- The leader turns `EX`/`PX` into absolute instants and stamps every entry with its clock; replicas decide expiry at
+  that log time, never with their own clocks ([ADR 0011](docs/adr/0011-deterministic-expiry-under-raft.md)).
+- The Raft log is the only write-ahead log: in a cluster the LSM engine writes no WAL and records the last applied log
+  index in its manifest. After a crash it is rebuilt from that point, from the latest snapshot plus the log
+  ([ADR 0012](docs/adr/0012-no-double-wal.md)). A cluster requires `store.engine=lsm`.
+- Prefer `server.type=virtual-threads`: commands wait for their commit, which blocks a Netty event loop and the other
+  connections on it.
+- Membership is fixed: changing `cluster.members` of a running cluster is not supported.
+
+`keyforge-chaos/docker-compose.yml` starts a three-node cluster in containers, and
+`keyforge-chaos/scripts/leader-failover.sh` kills its leader under load and checks what survived:
+
+```bash
+./mvnw -q package -DskipTests
+keyforge-chaos/scripts/leader-failover.sh
+```
+
 ### Try it with the real Redis tools
 
 If you have no local Redis install, use the official image. On Docker Desktop, `host.docker.internal` reaches the host:
@@ -103,6 +145,7 @@ docker run --rm redis:7.4 redis-benchmark -h host.docker.internal -t set,get -n 
 | `MGET`, `MSET` | Atomic with respect to every other command |
 | `DEL`, `EXISTS`, `DBSIZE`, `FLUSHDB [ASYNC\|SYNC]` | |
 | `CONFIG GET pattern...` | Reports `save`, `appendonly` (`yes` on the LSM engine), `dir`, `port`, `bind`, ... (globs `*` and `?`) |
+| `INFO [section ...]` | Sections `server` and, in a cluster, `raft` (role, term, leader, commit/applied/snapshot index, members) |
 | `COMMAND [DOCS\|INFO\|COUNT\|LIST]` | `COMMAND`, `DOCS` and `INFO` return an empty array |
 | `HELLO [2]`, `CLIENT SETNAME\|GETNAME\|ID\|SETINFO` | `HELLO 3` fails with `NOPROTO`: only RESP2 is spoken |
 
@@ -115,7 +158,9 @@ Unknown commands, wrong arity and protocol errors use Redis 7's exact wording, f
 | --- | --- |
 | `keyforge-protocol` | RESP2 encoder and incremental decoders over `ByteBuffer`; no dependencies |
 | `keyforge-storage` | `KeyValueStore` interface; the LSM engine (`io.keyforge.storage.lsm`: WAL, memtable, SSTables, manifest, compaction) and the segmented in-memory engine |
-| `keyforge-server` | Command table and dispatcher, Netty and virtual-thread servers, configuration, `main` |
+| `keyforge-raft` | Raft: the pure core (`io.keyforge.raft`), the runtime that drives it, durable log and snapshot storage, the gRPC transport; the deterministic simulator in its tests |
+| `keyforge-server` | Command table and dispatcher, Netty and virtual-thread servers, configuration, `main`; in a cluster, the replicated state machine, ReadIndex reads and forwarding to the leader (`io.keyforge.server.cluster`) |
+| `keyforge-chaos` | Docker Compose cluster and failover script (Phase 5 adds fault injection and a linearizability checker) |
 | `keyforge-bench` | Load generator (open-loop RESP traffic, HdrHistogram latencies, server memory/threads/CPU from `/proc`) and JMH benchmarks of the LSM engine |
 
 Design decisions are recorded in [docs/adr](docs/adr/README.md).
@@ -214,3 +259,36 @@ What was checked on 2026-10-28 (Windows 10, JDK 25.0.5; the SIGKILL check in Lin
     until compactions slow the disk;
   - point lookups: about 1.8 to 2 µs for a hit, 158 ns for an SSTable miss (Bloom filter);
   - 100-key scans: 12 to 29 µs.
+
+## Phase 4 verification
+
+What was checked on 2026-10-28 (Windows 10, JDK 25.0.5; the cluster in Linux containers on Temurin 25 with the
+`redis:7.4` tools):
+
+- `./mvnw clean verify`: 354 unit and property tests and 78 integration tests pass. For Raft that includes:
+  - `RaftSimulationIT`: 10,000 seeds of the deterministic simulator (ADR 0013), 3–5 nodes each, with message loss,
+    duplication, delays and reordering, symmetric and one-way partitions, crashes (also between a persist and a send)
+    and restarts. About 250 million simulated events, 23,736 elections, 734,661 acknowledged writes, 491,813
+    linearizable reads, 15,309 snapshot installations and 164,102 crashes, with **no invariant violation** (election
+    safety, log matching, state machine safety, leader completeness, read linearizability, and liveness after the faults
+    stop), in 19 s. `RaftSimulationTest` checks that a seed replays exactly and that three deliberate bugs (sending
+    before persisting, forgetting votes, reading without ReadIndex's confirmation) each break an invariant.
+  - `RaftNodeTest` (26 scenarios of the pure core: PreVote, vote persistence ordering, leader stickiness, conflict
+    truncation, the figure-8 commit rule, pipelining, ReadIndex rounds, snapshots), `FileRaftStorageTest` (torn tails,
+    mid-log corruption, interrupted snapshot installs) and `RaftClusterIT` (three runtimes over real gRPC: replication,
+    ReadIndex, forwarding, a leader crash, compaction and InstallSnapshot to a restarted node).
+  - `LsmReplicatedModeTest` (no WAL; after a crash the store holds exactly the entries up to its durable log position,
+    counters included; expiry at log time whatever the local clock; snapshot export and restore),
+    `KeyValueStateMachineTest` (replicas with clocks hours apart reach identical results and contents) and `ClusterIT`
+    (three nodes with both front ends driven by Jedis: every command through followers, `PX` expiry, a killed leader,
+    catch-up, a full restart from the Raft log with no `.wal` file anywhere).
+- `keyforge-chaos/scripts/leader-failover.sh` against the Docker Compose cluster:
+  - 1,000 `SET`s and 1,000 `INCR`s through a follower, forwarded to the leader;
+  - `docker kill --signal=KILL` of the leader: the survivors elected a new leader 2.1 s after the kill (election
+    timeout 1–2 s);
+  - on both survivors all 1,000 keys and the counter (1,000) were intact, and a 300 ms key had expired;
+  - 1,000 more writes through the survivors and `redis-benchmark -t set,get,incr -n 20000 -c 20` against a follower
+    completed. In Docker Desktop's VM each write costs a Raft-log fsync on two nodes: about 1,200 `SET`/s
+    (p50 14 ms), and about 6,000 `GET`/s (p50 2.8 ms) with ReadIndex;
+  - the killed node restarted, rejoined as a follower and caught up to the leader's index 43,003. With
+    `SNAPSHOT_THRESHOLD=5000`, it caught up through InstallSnapshot (snapshot index 40,010).

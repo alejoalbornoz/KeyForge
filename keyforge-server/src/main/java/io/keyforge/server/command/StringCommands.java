@@ -8,7 +8,6 @@ import io.keyforge.protocol.RespArray;
 import io.keyforge.protocol.RespBulkString;
 import io.keyforge.protocol.RespInteger;
 import io.keyforge.protocol.RespNull;
-import io.keyforge.protocol.RespNumbers;
 import io.keyforge.protocol.RespSimpleString;
 import io.keyforge.protocol.RespValue;
 import io.keyforge.storage.KeyValueStore;
@@ -17,13 +16,11 @@ import io.keyforge.storage.WriteCondition;
 /** GET, SET, INCR, DECR, MGET and MSET. */
 final class StringCommands {
 
-    private static final String OVERFLOW = "ERR increment or decrement would overflow";
-
-    private final KeyValueStore store;
+    private final Keyspace keyspace;
     private final InstantSource clock;
 
-    StringCommands(KeyValueStore store, InstantSource clock) {
-        this.store = store;
+    StringCommands(Keyspace keyspace, InstantSource clock) {
+        this.keyspace = keyspace;
         this.clock = clock;
     }
 
@@ -38,7 +35,7 @@ final class StringCommands {
     }
 
     private RespValue get(byte[][] args) {
-        return bulkOrNull(store.get(args[1]));
+        return bulkOrNull(keyspace.get(args[1]));
     }
 
     /** {@code SET key value [NX | XX] [EX seconds | PX milliseconds]}. */
@@ -65,13 +62,14 @@ final class StringCommands {
             }
         }
         long expireAt = ttl == null ? KeyValueStore.NO_EXPIRY : absoluteExpiry(ttl, ttlInSeconds);
-        boolean written = store.put(args[1], args[2], expireAt, condition);
+        boolean written = keyspace.set(args[1], args[2], expireAt, condition);
         return written ? RespSimpleString.OK : RespNull.BULK_STRING;
     }
 
     /**
      * Converts a relative TTL into an absolute epoch-millisecond instant, here at the command layer, so that the instant
-     * (not the TTL) is what reaches the store and, later, the replicated log.
+     * (not the TTL) is what reaches the store and the replicated log. In a cluster this runs on the leader, since
+     * followers forward commands unexecuted: followers never compute expiry with their own clocks.
      */
     private long absoluteExpiry(byte[] ttlArgument, boolean seconds) {
         long ttl = Arguments.parseLong(ttlArgument);
@@ -87,22 +85,11 @@ final class StringCommands {
     }
 
     private RespValue incrementBy(byte[] key, long delta) {
-        byte[] updated;
-        try {
-            updated = store.compute(key, current -> {
-                long value = current == null ? 0 : RespNumbers.parseLong(current);
-                return RespNumbers.toBytes(Math.addExact(value, delta));
-            });
-        } catch (NumberFormatException e) {
-            throw new CommandException(Arguments.NOT_AN_INTEGER);
-        } catch (ArithmeticException e) {
-            throw new CommandException(OVERFLOW);
-        }
-        return RespInteger.of(RespNumbers.parseLong(updated));
+        return RespInteger.of(keyspace.incrementBy(key, delta));
     }
 
     private RespValue mget(byte[][] args) {
-        List<byte[]> values = store.getAll(Arguments.tail(args, 1));
+        List<byte[]> values = keyspace.getAll(Arguments.tail(args, 1));
         List<RespValue> replies = new ArrayList<>(values.size());
         for (byte[] value : values) {
             replies.add(bulkOrNull(value));
@@ -121,7 +108,7 @@ final class StringCommands {
             keys.add(args[i]);
             values.add(args[i + 1]);
         }
-        store.putAll(keys, values);
+        keyspace.setAll(keys, values);
         return RespSimpleString.OK;
     }
 

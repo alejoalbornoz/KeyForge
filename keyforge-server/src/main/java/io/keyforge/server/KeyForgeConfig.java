@@ -15,7 +15,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.TreeMap;
 
+import io.keyforge.raft.grpc.PeerAddress;
 import io.keyforge.storage.lsm.FsyncPolicy;
 
 /**
@@ -42,6 +44,16 @@ import io.keyforge.storage.lsm.FsyncPolicy;
  * @param memtableSizeBytes    LSM engine: memtable size at which it is flushed to an SSTable
  * @param storeSegments        in-memory engine: lock segments; a power of two
  * @param activeExpireInterval in-memory engine: period of the active-expiry task; 0 disables it
+ * @param clusterMembers       every member of the Raft cluster, this node included, by node id, with the address of its
+ *                             Raft transport; empty for a standalone node
+ * @param raftBind             address the Raft transport listens on; its port is this node's entry in
+ *                             {@code clusterMembers}
+ * @param raftDataDirectory    where Raft keeps its log, term, vote and snapshots
+ * @param electionTimeout      shortest election timeout; each one is drawn from [timeout, 2 x timeout]
+ * @param heartbeatInterval    how often the leader sends heartbeats
+ * @param snapshotThreshold    applied log entries after which a snapshot is taken and the log compacted
+ * @param requestTimeout       how long a client command waits for its write to commit, its read to be confirmed or
+ *                             the leader to answer a forwarded command
  */
 public record KeyForgeConfig(
         String nodeId,
@@ -58,7 +70,14 @@ public record KeyForgeConfig(
         long groupCommitBytes,
         long memtableSizeBytes,
         int storeSegments,
-        Duration activeExpireInterval) {
+        Duration activeExpireInterval,
+        Map<String, PeerAddress> clusterMembers,
+        String raftBind,
+        Path raftDataDirectory,
+        Duration electionTimeout,
+        Duration heartbeatInterval,
+        long snapshotThreshold,
+        Duration requestTimeout) {
 
     public static final String NODE_ID = "node.id";
     public static final String SERVER_BIND = "server.bind";
@@ -75,6 +94,13 @@ public record KeyForgeConfig(
     public static final String STORE_MEMTABLE_SIZE_BYTES = "store.memtable-size-bytes";
     public static final String STORE_SEGMENTS = "store.segments";
     public static final String STORE_ACTIVE_EXPIRE_INTERVAL_MS = "store.active-expire-interval-ms";
+    public static final String CLUSTER_MEMBERS = "cluster.members";
+    public static final String RAFT_BIND = "raft.bind";
+    public static final String RAFT_DATA_DIR = "raft.data-dir";
+    public static final String RAFT_ELECTION_TIMEOUT_MS = "raft.election-timeout-ms";
+    public static final String RAFT_HEARTBEAT_INTERVAL_MS = "raft.heartbeat-interval-ms";
+    public static final String RAFT_SNAPSHOT_THRESHOLD = "raft.snapshot-threshold";
+    public static final String RAFT_REQUEST_TIMEOUT_MS = "raft.request-timeout-ms";
 
     private static final String ENV_PREFIX = "KEYFORGE_";
 
@@ -99,6 +125,27 @@ public record KeyForgeConfig(
         require(storeSegments >= 1 && storeSegments <= 65536 && Integer.bitCount(storeSegments) == 1,
                 STORE_SEGMENTS, "must be a power of two between 1 and 65536");
         require(!activeExpireInterval.isNegative(), STORE_ACTIVE_EXPIRE_INTERVAL_MS, "must not be negative");
+        clusterMembers = Collections.unmodifiableMap(new TreeMap<>(clusterMembers));
+        Objects.requireNonNull(raftBind, "raftBind");
+        Objects.requireNonNull(raftDataDirectory, "raftDataDirectory");
+        Objects.requireNonNull(electionTimeout, "electionTimeout");
+        Objects.requireNonNull(heartbeatInterval, "heartbeatInterval");
+        Objects.requireNonNull(requestTimeout, "requestTimeout");
+        require(heartbeatInterval.toMillis() >= 1, RAFT_HEARTBEAT_INTERVAL_MS, "must be positive");
+        require(electionTimeout.compareTo(heartbeatInterval) > 0, RAFT_ELECTION_TIMEOUT_MS,
+                "must be longer than " + RAFT_HEARTBEAT_INTERVAL_MS);
+        require(snapshotThreshold >= 1, RAFT_SNAPSHOT_THRESHOLD, "must be positive");
+        require(requestTimeout.toMillis() >= 1, RAFT_REQUEST_TIMEOUT_MS, "must be positive");
+        if (!clusterMembers.isEmpty()) {
+            require(clusterMembers.containsKey(nodeId), CLUSTER_MEMBERS, "must include this node, '" + nodeId + "'");
+            require(storeEngine == StoreEngine.LSM, STORE_ENGINE, "must be '" + StoreEngine.LSM.configName()
+                    + "' in a cluster");
+        }
+    }
+
+    /** Whether this node is part of a Raft cluster. */
+    public boolean clustered() {
+        return !clusterMembers.isEmpty();
     }
 
     /** The built-in defaults. */
@@ -186,6 +233,13 @@ public record KeyForgeConfig(
         properties.put(STORE_MEMTABLE_SIZE_BYTES, Long.toString(memtableSizeBytes));
         properties.put(STORE_SEGMENTS, Integer.toString(storeSegments));
         properties.put(STORE_ACTIVE_EXPIRE_INTERVAL_MS, Long.toString(activeExpireInterval.toMillis()));
+        properties.put(CLUSTER_MEMBERS, formatMembers(clusterMembers));
+        properties.put(RAFT_BIND, raftBind);
+        properties.put(RAFT_DATA_DIR, raftDataDirectory.toString());
+        properties.put(RAFT_ELECTION_TIMEOUT_MS, Long.toString(electionTimeout.toMillis()));
+        properties.put(RAFT_HEARTBEAT_INTERVAL_MS, Long.toString(heartbeatInterval.toMillis()));
+        properties.put(RAFT_SNAPSHOT_THRESHOLD, Long.toString(snapshotThreshold));
+        properties.put(RAFT_REQUEST_TIMEOUT_MS, Long.toString(requestTimeout.toMillis()));
         return properties;
     }
 
@@ -203,6 +257,28 @@ public record KeyForgeConfig(
 
     public KeyForgeConfig withDataDirectory(Path newDirectory) {
         return with(STORE_DATA_DIR, newDirectory.toString());
+    }
+
+    public KeyForgeConfig withNodeId(String newNodeId) {
+        return with(NODE_ID, newNodeId);
+    }
+
+    /** Joins a cluster: {@code members} maps node ids to Raft transport addresses; Raft data goes to {@code raftDir}. */
+    public KeyForgeConfig withCluster(Map<String, PeerAddress> members, Path raftDir) {
+        Map<String, String> properties = toProperties();
+        properties.put(CLUSTER_MEMBERS, formatMembers(members));
+        properties.put(RAFT_DATA_DIR, raftDir.toString());
+        return fromMap(properties);
+    }
+
+    public KeyForgeConfig withRaftTimings(Duration newElectionTimeout, Duration newHeartbeat, long newSnapshotThreshold,
+                                          Duration newRequestTimeout) {
+        Map<String, String> properties = toProperties();
+        properties.put(RAFT_ELECTION_TIMEOUT_MS, Long.toString(newElectionTimeout.toMillis()));
+        properties.put(RAFT_HEARTBEAT_INTERVAL_MS, Long.toString(newHeartbeat.toMillis()));
+        properties.put(RAFT_SNAPSHOT_THRESHOLD, Long.toString(newSnapshotThreshold));
+        properties.put(RAFT_REQUEST_TIMEOUT_MS, Long.toString(newRequestTimeout.toMillis()));
+        return fromMap(properties);
     }
 
     private KeyForgeConfig with(String property, String value) {
@@ -228,6 +304,13 @@ public record KeyForgeConfig(
         defaults.put(STORE_MEMTABLE_SIZE_BYTES, Long.toString(64L << 20));
         defaults.put(STORE_SEGMENTS, "256");
         defaults.put(STORE_ACTIVE_EXPIRE_INTERVAL_MS, "100");
+        defaults.put(CLUSTER_MEMBERS, "");
+        defaults.put(RAFT_BIND, "0.0.0.0");
+        defaults.put(RAFT_DATA_DIR, "raft");
+        defaults.put(RAFT_ELECTION_TIMEOUT_MS, "1000");
+        defaults.put(RAFT_HEARTBEAT_INTERVAL_MS, "100");
+        defaults.put(RAFT_SNAPSHOT_THRESHOLD, "100000");
+        defaults.put(RAFT_REQUEST_TIMEOUT_MS, "5000");
         return Collections.unmodifiableMap(defaults);
     }
 
@@ -247,7 +330,51 @@ public record KeyForgeConfig(
                 parseLong(values, STORE_WAL_GROUP_COMMIT_BYTES),
                 parseLong(values, STORE_MEMTABLE_SIZE_BYTES),
                 parseInt(values, STORE_SEGMENTS),
-                Duration.ofMillis(parseInt(values, STORE_ACTIVE_EXPIRE_INTERVAL_MS)));
+                Duration.ofMillis(parseInt(values, STORE_ACTIVE_EXPIRE_INTERVAL_MS)),
+                parseMembers(values.get(CLUSTER_MEMBERS)),
+                values.get(RAFT_BIND).strip(),
+                parsePath(values, RAFT_DATA_DIR),
+                Duration.ofMillis(parseLong(values, RAFT_ELECTION_TIMEOUT_MS)),
+                Duration.ofMillis(parseLong(values, RAFT_HEARTBEAT_INTERVAL_MS)),
+                parseLong(values, RAFT_SNAPSHOT_THRESHOLD),
+                Duration.ofMillis(parseLong(values, RAFT_REQUEST_TIMEOUT_MS)));
+    }
+
+    /** Parses {@code id=host:port,id=host:port,...}; blank means standalone. */
+    private static Map<String, PeerAddress> parseMembers(String text) {
+        Map<String, PeerAddress> members = new TreeMap<>();
+        if (text == null || text.isBlank()) {
+            return members;
+        }
+        for (String member : text.split(",")) {
+            int equals = member.indexOf('=');
+            if (equals <= 0) {
+                throw new IllegalArgumentException("Property '" + CLUSTER_MEMBERS
+                        + "' must look like id=host:port,id=host:port,..., got '" + text + "'");
+            }
+            String id = member.substring(0, equals).strip();
+            PeerAddress address;
+            try {
+                address = PeerAddress.parse(member.substring(equals + 1).strip());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Property '" + CLUSTER_MEMBERS + "': " + e.getMessage());
+            }
+            if (members.put(id, address) != null) {
+                throw new IllegalArgumentException("Property '" + CLUSTER_MEMBERS + "' lists '" + id + "' twice");
+            }
+        }
+        return members;
+    }
+
+    private static String formatMembers(Map<String, PeerAddress> members) {
+        StringBuilder text = new StringBuilder();
+        new TreeMap<>(members).forEach((id, address) -> {
+            if (!text.isEmpty()) {
+                text.append(',');
+            }
+            text.append(id).append('=').append(address);
+        });
+        return text.toString();
     }
 
     private static Map<String, String> readProperties(Path file) {

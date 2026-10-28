@@ -1,0 +1,118 @@
+// Wire format of the gRPC transport between KeyForge nodes. It mirrors io.keyforge.raft.RaftMessage one to one.
+syntax = "proto3";
+
+package keyforge.raft.v1;
+
+option java_package = "io.keyforge.raft.grpc.proto";
+option java_multiple_files = true;
+option java_outer_classname = "RaftProto";
+
+// Node-to-node traffic.
+service RaftTransport {
+  // One long-lived bidirectional stream per (sender, receiver) pair. The node that opened it writes its messages on
+  // the request side (AppendEntries, vote requests); the receiver writes its answers (AppendEntries and vote
+  // responses) on the response side of the same stream. Any message may travel either way.
+  rpc Exchange(stream Envelope) returns (stream Envelope);
+
+  // Streams one snapshot in chunks; the first chunk carries the InstallSnapshot header. The follower's answer is an
+  // InstallSnapshotResponse envelope on the Exchange stream; this call only acknowledges the transfer.
+  rpc InstallSnapshot(stream SnapshotChunk) returns (SnapshotTransferred);
+
+  // Client request forwarding: a node that is not the leader hands a client request to the leader.
+  rpc Forward(ForwardRequest) returns (ForwardResponse);
+}
+
+// One Raft message.
+message Envelope {
+  string from = 1;
+  string to = 2;
+  uint64 term = 3;
+  oneof body {
+    VoteRequest vote_request = 10;
+    VoteResponse vote_response = 11;
+    AppendEntries append_entries = 12;
+    AppendEntriesResponse append_entries_response = 13;
+    InstallSnapshotResponse install_snapshot_response = 14;
+  }
+}
+
+message VoteRequest {
+  uint64 last_log_index = 1;
+  uint64 last_log_term = 2;
+  bool pre_vote = 3;
+}
+
+message VoteResponse {
+  bool granted = 1;
+  bool pre_vote = 2;
+}
+
+message AppendEntries {
+  uint64 prev_log_index = 1;
+  uint64 prev_log_term = 2;
+  repeated Entry entries = 3;
+  uint64 leader_commit = 4;
+  uint64 round = 5;
+}
+
+enum EntryKind {
+  ENTRY_KIND_COMMAND = 0;
+  ENTRY_KIND_NOOP = 1;
+}
+
+message Entry {
+  uint64 index = 1;
+  uint64 term = 2;
+  EntryKind kind = 3;
+  bytes data = 4;
+}
+
+message AppendEntriesResponse {
+  bool success = 1;
+  uint64 match_index = 2;
+  uint64 hint_index = 3;
+  uint64 round = 4;
+}
+
+message InstallSnapshotResponse {
+  uint64 match_index = 1;
+  uint64 round = 2;
+}
+
+message SnapshotChunk {
+  // Present in the first chunk only.
+  SnapshotHeader header = 1;
+  bytes data = 2;
+}
+
+message SnapshotHeader {
+  string from = 1;
+  string to = 2;
+  uint64 term = 3;
+  uint64 last_included_index = 4;
+  uint64 last_included_term = 5;
+  uint64 round = 6;
+  uint64 size = 7;
+}
+
+message SnapshotTransferred {
+}
+
+message ForwardRequest {
+  string from = 1;
+  bytes payload = 2;
+}
+
+message ForwardResponse {
+  oneof result {
+    // The leader's answer, opaque to the transport.
+    bytes reply = 1;
+    // The receiver is not the leader.
+    NotLeader not_leader = 2;
+  }
+}
+
+message NotLeader {
+  // The leader the receiver knows of; empty if none.
+  string leader_hint = 1;
+}

@@ -1,0 +1,70 @@
+# A three-node KeyForge cluster (Raft) in Linux containers.
+#
+# Build the server jar first:   ./mvnw -q package -DskipTests
+# Start:                        docker compose -f keyforge-chaos/docker-compose.yml up -d
+# Talk to it:                   docker compose -f keyforge-chaos/docker-compose.yml exec client redis-cli -h kf1
+# Leader-kill check:            keyforge-chaos/scripts/leader-failover.sh
+#
+# Every node accepts every command: followers forward data commands to the leader. From the host, the nodes' RESP
+# ports are 6381, 6382 and 6383. Each node keeps its LSM store and Raft log in its own volume.
+
+x-node: &node
+  image: eclipse-temurin:25-jdk
+  # Short DNS caching: a restarted container may come back with another address.
+  command: ["java", "-Xmx512m", "-Dsun.net.inetaddr.ttl=2", "-Dsun.net.inetaddr.negative.ttl=1",
+            "-jar", "/app/server.jar"]
+  restart: "no"
+
+x-environment: &environment
+  KEYFORGE_SERVER_TYPE: virtual-threads
+  KEYFORGE_STORE_DATA_DIR: /data/store
+  KEYFORGE_RAFT_DATA_DIR: /data/raft
+  KEYFORGE_CLUSTER_MEMBERS: node-1=kf1:7000,node-2=kf2:7000,node-3=kf3:7000
+  KEYFORGE_RAFT_ELECTION_TIMEOUT_MS: "1000"
+  KEYFORGE_RAFT_HEARTBEAT_INTERVAL_MS: "100"
+  # Lower it (SNAPSHOT_THRESHOLD=5000) to see snapshots, log compaction and InstallSnapshot.
+  KEYFORGE_RAFT_SNAPSHOT_THRESHOLD: "${SNAPSHOT_THRESHOLD:-100000}"
+
+services:
+  kf1:
+    <<: *node
+    hostname: kf1
+    environment:
+      <<: *environment
+      KEYFORGE_NODE_ID: node-1
+    ports: ["6381:6379"]
+    volumes:
+      - ../keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar:/app/server.jar:ro
+      - kf1-data:/data
+
+  kf2:
+    <<: *node
+    hostname: kf2
+    environment:
+      <<: *environment
+      KEYFORGE_NODE_ID: node-2
+    ports: ["6382:6379"]
+    volumes:
+      - ../keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar:/app/server.jar:ro
+      - kf2-data:/data
+
+  kf3:
+    <<: *node
+    hostname: kf3
+    environment:
+      <<: *environment
+      KEYFORGE_NODE_ID: node-3
+    ports: ["6383:6379"]
+    volumes:
+      - ../keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar:/app/server.jar:ro
+      - kf3-data:/data
+
+  # Stock Redis tools on the cluster's network: redis-cli and redis-benchmark.
+  client:
+    image: redis:7.4
+    command: ["sleep", "infinity"]
+
+volumes:
+  kf1-data:
+  kf2-data:
+  kf3-data:

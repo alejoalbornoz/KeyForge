@@ -5,23 +5,23 @@ import java.util.List;
 import io.keyforge.protocol.RespInteger;
 import io.keyforge.protocol.RespSimpleString;
 import io.keyforge.protocol.RespValue;
-import io.keyforge.storage.KeyValueStore;
 
 /** DEL, EXISTS, DBSIZE and FLUSHDB. */
 final class KeyspaceCommands {
 
-    private final KeyValueStore store;
+    private final Keyspace keyspace;
 
-    KeyspaceCommands(KeyValueStore store) {
-        this.store = store;
+    KeyspaceCommands(Keyspace keyspace) {
+        this.keyspace = keyspace;
     }
 
     List<CommandSpec> specs() {
         return List.of(
-                new CommandSpec("del", -2, (session, args) -> RespInteger.of(store.delete(Arguments.tail(args, 1)))),
+                new CommandSpec("del", -2,
+                        (session, args) -> RespInteger.of(keyspace.delete(Arguments.tail(args, 1)))),
                 new CommandSpec("exists", -2,
-                        (session, args) -> RespInteger.of(store.countExisting(Arguments.tail(args, 1)))),
-                new CommandSpec("dbsize", 1, (session, args) -> RespInteger.of(store.size())),
+                        (session, args) -> RespInteger.of(keyspace.countExisting(Arguments.tail(args, 1)))),
+                new CommandSpec("dbsize", 1, (session, args) -> RespInteger.of(keyspace.size())),
                 new CommandSpec("flushdb", -1, (session, args) -> flushdb(args)));
     }
 
@@ -30,7 +30,7 @@ final class KeyspaceCommands {
         if (args.length > 2 || (args.length == 2 && !Arguments.is(args[1], "ASYNC") && !Arguments.is(args[1], "SYNC"))) {
             throw new CommandException(Arguments.SYNTAX_ERROR);
         }
-        store.clear();
+        keyspace.clear();
         return RespSimpleString.OK;
     }
 }
