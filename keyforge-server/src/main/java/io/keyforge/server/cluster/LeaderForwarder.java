@@ -3,6 +3,7 @@ package io.keyforge.server.cluster;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -18,9 +19,8 @@ import io.keyforge.protocol.RespError;
 import io.keyforge.protocol.RespRequestDecoder;
 import io.keyforge.protocol.RespValue;
 import io.keyforge.raft.grpc.ForwardHandler;
+import io.keyforge.raft.grpc.ForwardNotSentException;
 import io.keyforge.raft.grpc.ForwardResult;
-import io.keyforge.raft.grpc.GrpcTransport;
-import io.keyforge.raft.runtime.RaftRuntime;
 import io.keyforge.server.command.ClientSession;
 import io.keyforge.server.command.CommandDispatcher;
 import io.keyforge.server.command.CommandRouter;
@@ -34,6 +34,11 @@ import io.keyforge.server.command.RedirectException;
  * instants with its own clock. A node that receives a forwarded command executes it locally and never forwards it
  * again; if it has lost leadership it answers with the leader it now knows of, and the sender retries there until the
  * request timeout. While no leader is known (an election), the sender waits for one.
+ *
+ * <p><b>Retries are only safe when the command certainly had no effect</b> (ADR 0017): a {@code NotLeader} answer, or a
+ * request that was never sent because there was no connection. Once a request is on the wire, a broken connection or a
+ * timeout leaves its outcome unknown, so the client gets an error saying so instead of a retry that could apply it
+ * twice. {@code CLUSTERDOWN}, which clients may treat as a definite failure, is sent only when no attempt was sent.
  */
 public final class LeaderForwarder implements CommandRouter, ForwardHandler {
 
@@ -41,21 +46,32 @@ public final class LeaderForwarder implements CommandRouter, ForwardHandler {
 
     private static final long PAUSE_MILLIS = 20;
 
-    private final RaftRuntime raft;
-    private final GrpcTransport transport;
+    /** Sends a request to another node: {@link io.keyforge.raft.grpc.GrpcTransport#forward} in production. */
+    @FunctionalInterface
+    public interface ForwardClient {
+        CompletableFuture<ForwardResult> forward(String node, byte[] request, Duration timeout);
+    }
+
+    private final String nodeId;
+    private final Supplier<String> leaderId;
+    private final ForwardClient client;
     private final Supplier<CommandDispatcher> dispatcher;
     private final long timeoutNanos;
     private final int maxBulkLength;
     private final int maxArrayLength;
 
     /**
+     * @param nodeId     this node
+     * @param leaderId   the leader this node currently knows of, or {@code null}
      * @param dispatcher this node's dispatcher, for commands forwarded here (supplied lazily: the dispatcher needs this
      *                   router first)
      */
-    public LeaderForwarder(RaftRuntime raft, GrpcTransport transport, Supplier<CommandDispatcher> dispatcher,
-                           Duration timeout, int maxBulkLength, int maxArrayLength) {
-        this.raft = raft;
-        this.transport = transport;
+    public LeaderForwarder(String nodeId, Supplier<String> leaderId, ForwardClient client,
+                           Supplier<CommandDispatcher> dispatcher, Duration timeout, int maxBulkLength,
+                           int maxArrayLength) {
+        this.nodeId = nodeId;
+        this.leaderId = leaderId;
+        this.client = client;
         this.dispatcher = dispatcher;
         this.timeoutNanos = timeout.toNanos();
         this.maxBulkLength = maxBulkLength;
@@ -69,9 +85,9 @@ public final class LeaderForwarder implements CommandRouter, ForwardHandler {
         String next = target;
         while (true) {
             if (next == null) {
-                next = raft.leaderId();
+                next = leaderId.get();
             }
-            if (next != null && next.equals(raft.nodeId())) {
+            if (next != null && next.equals(nodeId)) {
                 // This node became the leader meanwhile.
                 try {
                     return dispatcher.get().dispatchLocally(new ClientSession(), arguments);
@@ -84,7 +100,7 @@ public final class LeaderForwarder implements CommandRouter, ForwardHandler {
                     break;
                 }
                 try {
-                    ForwardResult result = transport.forward(next, request, Duration.ofNanos(remaining))
+                    ForwardResult result = client.forward(next, request, Duration.ofNanos(remaining))
                             .get(remaining + TimeUnit.SECONDS.toNanos(1), TimeUnit.NANOSECONDS);
                     switch (result) {
                         case ForwardResult.Reply reply -> {
@@ -94,13 +110,15 @@ public final class LeaderForwarder implements CommandRouter, ForwardHandler {
                                 || notLeader.leaderHint().equals(next) ? null : otherThanSelf(notLeader.leaderHint());
                     }
                 } catch (ExecutionException e) {
-                    Status status = Status.fromThrowable(e.getCause());
-                    if (status.getCode() != Status.Code.UNAVAILABLE) {
-                        return RespError.err("forwarding to the leader " + next + " failed (" + status.getCode()
+                    if (!(e.getCause() instanceof ForwardNotSentException notSent)) {
+                        // The request was sent: the leader may have committed it before the connection broke, so a
+                        // retry could apply it twice. Only the client can decide what to do (ADR 0017).
+                        return RespError.err("forwarding to the leader " + next + " failed ("
+                                + Status.fromThrowable(e.getCause()).getCode()
                                 + "); the command may or may not have been applied");
                     }
-                    // The leader is unreachable, most likely gone: wait for the next one.
-                    log.debug("Leader {} unreachable: {}", next, status);
+                    // Nothing was sent: the leader is unreachable, most likely gone. Wait for the next one.
+                    log.debug("Leader {} unreachable: {}", next, notSent.getMessage());
                     next = null;
                 } catch (TimeoutException e) {
                     return RespError.err("timed out waiting for the leader " + next
@@ -115,7 +133,7 @@ public final class LeaderForwarder implements CommandRouter, ForwardHandler {
             }
             pause();
             if (next == null) {
-                next = raft.leaderId();
+                next = leaderId.get();
             }
         }
         return new RespError("CLUSTERDOWN no Raft leader is available");
@@ -137,7 +155,7 @@ public final class LeaderForwarder implements CommandRouter, ForwardHandler {
     }
 
     private String otherThanSelf(String node) {
-        return node == null || node.equals(raft.nodeId()) ? null : node;
+        return node == null || node.equals(nodeId) ? null : node;
     }
 
     private static RespValue decodeReply(byte[] reply) {

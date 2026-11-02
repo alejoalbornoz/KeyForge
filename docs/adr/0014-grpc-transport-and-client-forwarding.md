@@ -1,6 +1,6 @@
 # ADR 0014: gRPC transport with a bidirectional stream per node pair, and forwarding to the leader
 
-- Status: accepted
+- Status: accepted; forwarding retries amended by [ADR 0017](0017-retry-only-what-certainly-had-no-effect.md)
 - Date: 2026-10-28
 - Phase: 4
 
@@ -39,8 +39,10 @@ request* to `LeaderForwarder`, which sends it with `Forward` to the leader it kn
 Forwarding the request rather than a half-executed command means the leader parses it and computes TTL instants with its
 own clock (ADR 0011). If the receiver has lost leadership, it answers with the leader it now knows of and the sender
 retries there. While no leader is known it waits, polling every 20 ms, up to `raft.request-timeout-ms` (5 s), then
-answers `CLUSTERDOWN no Raft leader is available`. `UNAVAILABLE` (the leader is gone) is retried the same way; any other
-failure is reported as an error with an unknown outcome.
+answers `CLUSTERDOWN no Raft leader is available`. A request that could not be sent (no connection) is retried the same
+way. A failure after the request was sent is reported as an error with an unknown outcome and never retried
+([ADR 0017](0017-retry-only-what-certainly-had-no-effect.md); the first version also retried `UNAVAILABLE`, and the
+Phase 5 checker caught a doubled `INCR`).
 
 **Why the peer's stream comes first.** The first version sent requests on its own stream and answers on the peer's.
 The Docker failover test then showed a restarted node that never heard from the new leader. While the node was dead,
@@ -49,6 +51,13 @@ leader's messages in a call waiting for a connection instead of failing it. The 
 its own stream to the leader for its pre-votes. That stream proves the peer is up and reachable now, so it is
 preferred. The transport also resets gRPC's connection backoff, at most every 100 ms, when it needs a channel in
 `TRANSIENT_FAILURE`. The Docker setup caches DNS answers for 2 s, since a restarted container may change address.
+
+**A stream that fails while it opens is never kept.** On a channel in `TRANSIENT_FAILURE`, which is what a partition
+leaves behind, gRPC fails a new call at once, and its failure callback could run before the transport had stored the
+stream. The callback then found nothing to remove, and the dead stream stayed stored: every later message to that peer
+was accepted and dropped, and the node never reconnected on its own. Phase 5's partition nemesis left a five-node
+cluster without a leader this way for minutes after healing (seed 3856152790820). Each stream now has a `closed` flag
+that its callback sets and the transport checks right after storing it (`GrpcTransportTest` reproduces the race).
 
 **Commands block until committed.** A write returns after its entry is committed and applied on the leader, a read
 after its ReadIndex confirmation (ADR 0010). With `server.type=virtual-threads` only the connection's virtual thread
@@ -65,10 +74,10 @@ leader.
   election, replication, ReadIndex, forwarding, a leader crash, compaction and InstallSnapshot to a restarted node.
 - Clients need no cluster awareness: `redis-cli`, Jedis and `redis-benchmark` work against any node. The cost is an
   extra network hop for every command sent to a follower.
-- Retrying a forwarded write after `UNAVAILABLE` can apply it twice if the old leader committed it just before dying.
-  That is harmless for `SET`, `MSET` and `DEL`, and a double count for `INCR`/`DECR`. Exactly-once semantics need client
-  sessions with request ids deduplicated by the state machine; that is an open issue for Phase 5's linearizability
-  checks.
+- A forwarded command whose connection to the leader breaks after it was sent ends with an unknown-outcome error, as on
+  a direct connection to a dying leader; only commands that certainly had no effect are retried (ADR 0017). The first
+  version also retried after `UNAVAILABLE`, which the Phase 5 linearizability test caught applying an `INCR` twice.
+  Exactly-once retries would need client sessions with request ids deduplicated by the state machine.
 - Pipelined commands from one connection still run one after another, each waiting for its commit, so pipelining
   (`redis-benchmark -P`) gains little in a cluster. Batching a connection's pipelined writes into one proposal is a
   possible optimisation.

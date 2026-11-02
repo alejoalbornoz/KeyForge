@@ -2,6 +2,7 @@ package io.keyforge.raft.runtime;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.ClosedByInterruptException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -248,8 +249,14 @@ public final class RaftRuntime implements AutoCloseable {
             return;
         }
         stopping = true;
-        raftThread.interrupt();
+        // Wake the Raft thread instead of interrupting it: an interrupt during the log's fsync closes the file channel
+        // (ClosedByInterruptException), which would look like a storage failure. It finishes its batch and exits.
+        events.add(RaftEvent.TICK);
         join(raftThread);
+        if (raftThread.isAlive()) {
+            raftThread.interrupt();
+            join(raftThread);
+        }
         // Only the Raft thread sends, so the transport closes once it has stopped.
         transport.close();
         applyQueue.add(new Stop());
@@ -315,7 +322,11 @@ public final class RaftRuntime implements AutoCloseable {
                 updateMdc();
             }
         } catch (InterruptedException e) {
-            // close()
+            // close(), when the thread did not stop by itself
+        } catch (ClosedByInterruptException e) {
+            if (!stopping) {
+                fail(e);
+            }
         } catch (Throwable t) {
             fail(t);
         }

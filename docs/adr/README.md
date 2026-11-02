@@ -20,3 +20,4 @@ One file per decision: context, decision, consequences, alternatives considered.
 | [0014](0014-grpc-transport-and-client-forwarding.md) | gRPC transport with a bidirectional stream per node pair, and forwarding to the leader | 4 |
 | [0015](0015-linearizability-checking-with-porcupine.md) | Jepsen-style histories from a Java workload, checked per key by Porcupine | 5 |
 | [0016](0016-fault-injection-in-docker.md) | Fault injection: a network container per node, iptables and Toxiproxy, signals to the server | 5 |
+| [0017](0017-retry-only-what-certainly-had-no-effect.md) | Forwarded commands are retried only when they certainly had no effect | 4 (fix found in 5) |

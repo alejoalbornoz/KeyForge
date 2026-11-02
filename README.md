@@ -112,6 +112,9 @@ java -jar keyforge-server-0.1.0-SNAPSHOT-all.jar --node.id=node-1 --server.type=
 
 - Clients may talk to any node. Followers forward data commands to the leader and relay its reply, so `redis-cli` and
   `redis-benchmark` work unchanged against any node. `INFO raft` shows a node's role, term, leader and log positions.
+  A forward is retried only when it certainly had no effect. A command in flight when the leader dies ends with an
+  error saying it may or may not have been applied, as on a direct connection to that leader
+  ([ADR 0017](docs/adr/0017-retry-only-what-certainly-had-no-effect.md)).
 - Writes return once committed on a majority and applied; reads are linearizable through ReadIndex
   ([ADR 0010](docs/adr/0010-linearizable-reads-with-readindex.md)).
 - The leader turns `EX`/`PX` into absolute instants and stamps every entry with its clock; replicas decide expiry at
@@ -358,7 +361,8 @@ checker in Linux containers):
   The run made 27,356 operations that completed (p50 4 ms for `GET`, 10 ms for writes, p99 about 190 ms), 128 that
   failed and 145 that were indeterminate. Porcupine checked it in under a second.
 - `DURATION=120 NEMESIS=all`, with packet loss, latency, kills and pauses (including the leader's): **NOT
-  LINEARIZABLE**. The checker found Phase 4's known forwarding issue (ADR 0014) on the real cluster:
+  LINEARIZABLE**. The checker found Phase 4's known forwarding issue (ADR 0014) on the real cluster (fixed afterwards,
+  see below):
   - The nemesis killed the leader kf5 while three followers had `INCR`s of the same key forwarded to it.
   - kf5 had committed one of them. The follower got `UNAVAILABLE` and retried on the new leader, so that increment was
     applied twice.
@@ -368,7 +372,8 @@ checker in Linux containers):
   `nodes.log`.
 - `NEMESIS=wipe`, the self-test, was **NOT LINEARIZABLE** as it must be: after a majority lost its data, the final
   reads found `nil` where 15 of 25 keys had acknowledged writes.
-- Two five-minute partition runs with seed 3856152790820 were linearizable, but **the cluster did not recover**: after
+- Two five-minute partition runs with seed 3856152790820 were linearizable, but **the cluster did not recover** (fixed
+  afterwards, see below): after
   the last partition was healed, all five nodes stayed `pre_candidate` for minutes, with every port reachable and no
   iptables rule or toxic left. This is a liveness bug in Phase 4's gRPC transport. `GrpcTransport.outboundStream`
   starts a call and only then stores it in its map of streams. On a channel in `TRANSIENT_FAILURE`, which is what a
@@ -388,17 +393,39 @@ checker in Linux containers):
   - about 950 `SET`/s and 3,500 `GET`/s through a follower.
 - Memory: the five servers and their network containers used about 625 MiB during a run.
 
+Fixed after Phase 5 (2026-11-02), in the Phase 4 code the test exercised:
+
+- **Doubled forwarded writes.** A follower now retries a forwarded command only when it certainly had no effect: a
+  `NotLeader` answer, or a request never sent because there was no connection. After a failure once the request was
+  sent, it answers an unknown-outcome error. It answers `CLUSTERDOWN` only when nothing was sent (ADR 0017).
+- **Transport liveness.** A stream that fails while it opens is no longer kept. Each stream's failure callback sets a
+  flag that the transport checks right after storing the stream (ADR 0014).
+- **Clean stops reported as failures.** `RaftRuntime.close()` now wakes the Raft thread instead of interrupting it, so
+  an fsync in progress finishes, and a stop no longer logs "The Raft node failed".
+
+Checked with:
+
+- `./mvnw clean verify`, with new tests:
+  - `GrpcTransportTest`: a peer that comes up after a node tried to reach it receives its messages; a forward without a
+    connection is reported as not sent; a forward cut off mid-execution is not;
+  - `LeaderForwarderTest`: the retry rules one by one, against a scripted transport;
+  - `RaftRuntimeTest`: closing under write load records no failure.
+
+  With the old behaviour restored, both the transport regression test and the close test fail in their first round.
+- Three runs of `DURATION=120 NEMESIS=all`, all **LINEARIZABLE**:
+  - 11,826, 12,884 and 13,344 operations;
+  - pauses, packet loss and latency in every run;
+  - kills in the second and third, including kf4 while it was the leader;
+  - 55 forwarded commands answered "may or may not have been applied" instead of being retried, among them
+    `UNAVAILABLE` from the killed leader.
+- The partition run with seed 3856152790820 (18 partitions, 29,810 operations over 102 keys): **LINEARIZABLE**, and
+  every node served again 0.0 s after the faults were healed. Before the fix, this run left the cluster without a
+  leader.
+
 Open issues:
 
-- **Doubled forwarded writes** (found by the checker). Every retry of a forwarded write after `UNAVAILABLE` can apply
-  it twice. The fix is either:
-  - client sessions with request ids that the state machine deduplicates; or
-  - not retrying once the request may have reached the leader, and answering with an unknown-outcome error instead.
-- **Transport liveness** (found by the nemesis). A stream that fails while it is being opened is kept as if alive. The
-  fix is a "closed" flag that `outboundStream` checks after storing the stream, plus a regression test like the probe.
-- `KeyForgeNode.close()` interrupts the Raft thread during an fsync, and `RaftRuntime` logs a
-  `ClosedByInterruptException` as a node failure. It only happens on a clean in-process stop, and only the log line is
-  wrong.
+- Forwarded reads are not retried after an unknown outcome either, although that would be harmless. Exactly-once
+  retries by clients themselves would need client sessions deduplicated by the state machine (ADR 0017).
 - The nemesis injects one fault at a time and no clock skew. Latency applies to the connections a node accepts. The
   workload uses single-key commands only.
 - When a cluster does not recover, the final reads fail and a lost write at the very end can go unnoticed. The script

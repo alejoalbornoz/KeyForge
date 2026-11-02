@@ -117,6 +117,24 @@ class RaftClusterIT {
         return commands;
     }
 
+    /**
+     * Forwards like {@code LeaderForwarder} does: a request that was not sent because the connection is still being
+     * established is retried. Raft traffic may run on the peer's stream, so our own channel to it can still be idle.
+     */
+    private static ForwardResult forward(GrpcTransport transport, String peer, byte[] request) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (true) {
+            try {
+                return transport.forward(peer, request, Duration.ofSeconds(5)).get(10, TimeUnit.SECONDS);
+            } catch (ExecutionException e) {
+                if (!(e.getCause() instanceof ForwardNotSentException) || System.nanoTime() > deadline) {
+                    throw e;
+                }
+                Thread.sleep(20);
+            }
+        }
+    }
+
     private static void proposeAll(RaftRuntime leader, List<String> commands) throws Exception {
         List<CompletableFuture<Object>> futures = new ArrayList<>();
         for (String command : commands) {
@@ -144,16 +162,13 @@ class RaftClusterIT {
                 .cause().extracting(cause -> ((NotLeaderException) cause).leaderHint()).isEqualTo(leaderId);
 
         // A follower forwards a request to the leader.
-        ForwardResult forwarded = follower.transport()
-                .forward(leaderId, "forwarded".getBytes(StandardCharsets.UTF_8), Duration.ofSeconds(5))
-                .get(10, TimeUnit.SECONDS);
+        ForwardResult forwarded = forward(follower.transport(), leaderId, "forwarded".getBytes(StandardCharsets.UTF_8));
         assertThat(forwarded).isInstanceOf(ForwardResult.Reply.class);
         expected.add("forwarded");
         // Forwarding to a follower is refused with a hint.
         String other = MEMBERS.stream().filter(id -> !id.equals(leaderId) && !id.equals(follower.runtime().nodeId()))
                 .findFirst().orElseThrow();
-        assertThat(follower.transport().forward(other, new byte[] {1}, Duration.ofSeconds(5)).get(10,
-                TimeUnit.SECONDS)).isEqualTo(new ForwardResult.NotLeader(leaderId));
+        assertThat(forward(follower.transport(), other, new byte[] {1})).isEqualTo(new ForwardResult.NotLeader(leaderId));
 
         // Kill the leader: the others elect a new one and keep committing; snapshots compact their logs meanwhile.
         nodes.remove(leaderId).runtime().close();

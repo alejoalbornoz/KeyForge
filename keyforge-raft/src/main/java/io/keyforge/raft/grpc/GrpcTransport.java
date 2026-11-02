@@ -188,8 +188,10 @@ public final class GrpcTransport implements Transport {
     }
 
     /**
-     * Forwards a client request to {@code peer}. Completes with the peer's result, or exceptionally if the call fails
-     * or times out (the request may or may not have been executed then).
+     * Forwards a client request to {@code peer}. Completes with the peer's result. Fails with
+     * {@link ForwardNotSentException} if there is no established connection to the peer, so the request was certainly
+     * not sent and may be retried elsewhere; any other failure (a broken connection, a timeout) happened after the
+     * request was sent, and the peer may or may not have executed it.
      */
     public CompletableFuture<ForwardResult> forward(String peer, byte[] request, Duration timeout) {
         CompletableFuture<ForwardResult> result = new CompletableFuture<>();
@@ -197,7 +199,15 @@ public final class GrpcTransport implements Transport {
             result.completeExceptionally(new IllegalArgumentException("unknown peer " + peer));
             return result;
         }
-        RaftTransportGrpc.newStub(reconnectingChannel(peer))
+        ManagedChannel channel = reconnectingChannel(peer);
+        ConnectivityState state = channel.getState(true);
+        if (state != ConnectivityState.READY) {
+            // Sending only on an established connection is what makes this failure safe to retry: once a request
+            // is on the wire, a lost connection cannot tell us whether the peer executed it.
+            result.completeExceptionally(new ForwardNotSentException(peer, state.name()));
+            return result;
+        }
+        RaftTransportGrpc.newStub(channel)
                 .withDeadlineAfter(timeout.toMillis(), TimeUnit.MILLISECONDS)
                 .forward(ForwardRequest.newBuilder().setFrom(nodeId).setPayload(ByteString.copyFrom(request)).build(),
                         new StreamObserver<>() {
@@ -300,39 +310,57 @@ public final class GrpcTransport implements Transport {
         if (after != null && System.nanoTime() - after < 0) {
             return null;
         }
-        ClientResponseObserver<Envelope, Envelope> responses = new ClientResponseObserver<>() {
-            private ClientCallStreamObserver<Envelope> requests;
-
-            @Override
-            public void beforeStart(ClientCallStreamObserver<Envelope> requestStream) {
-                this.requests = requestStream;
-            }
-
-            @Override
-            public void onNext(Envelope envelope) {
-                deliver(envelope);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                lost(t);
-            }
-
-            @Override
-            public void onCompleted() {
-                lost(null);
-            }
-
-            private void lost(Throwable t) {
-                if (outbound.remove(peer, requests)) {
-                    reconnectAfter.put(peer, System.nanoTime() + RECONNECT_BACKOFF_NANOS);
-                    log.debug("Stream to {} closed: {}", peer, t == null ? "completed" : Status.fromThrowable(t));
-                }
-            }
-        };
+        OutboundResponses responses = new OutboundResponses(peer);
         StreamObserver<Envelope> requests = RaftTransportGrpc.newStub(reconnectingChannel(peer)).exchange(responses);
         outbound.put(peer, requests);
+        if (responses.closed) {
+            // The call already failed: a channel in TRANSIENT_FAILURE (what a partition leaves behind) fails a call at
+            // once, and its onError may have run before the put above and found nothing to remove. A dead stream kept
+            // here would accept and drop every later message to this peer, for good.
+            outbound.remove(peer, requests);
+            return null;
+        }
         return requests;
+    }
+
+    /** The response side of our stream to a peer: delivers what the peer sends back, and forgets the stream when it ends. */
+    private final class OutboundResponses implements ClientResponseObserver<Envelope, Envelope> {
+        private final String peer;
+        private volatile ClientCallStreamObserver<Envelope> requests;
+        /** Set when the call has ended; checked after the stream is stored (see {@link #outboundStream}). */
+        private volatile boolean closed;
+
+        OutboundResponses(String peer) {
+            this.peer = peer;
+        }
+
+        @Override
+        public void beforeStart(ClientCallStreamObserver<Envelope> requestStream) {
+            this.requests = requestStream;
+        }
+
+        @Override
+        public void onNext(Envelope envelope) {
+            deliver(envelope);
+        }
+
+        @Override
+        public void onError(Throwable t) {
+            lost(t);
+        }
+
+        @Override
+        public void onCompleted() {
+            lost(null);
+        }
+
+        private void lost(Throwable t) {
+            closed = true;
+            reconnectAfter.put(peer, System.nanoTime() + RECONNECT_BACKOFF_NANOS);
+            if (outbound.remove(peer, requests)) {
+                log.debug("Stream to {} closed: {}", peer, t == null ? "completed" : Status.fromThrowable(t));
+            }
+        }
     }
 
     private void sendSnapshot(RaftMessage.InstallSnapshot install) {

@@ -84,8 +84,8 @@ public final class KeyForgeNode implements AutoCloseable {
         try {
             ReplicatedKeyspace keyspace = new ReplicatedKeyspace(raft, store, clock, config.requestTimeout());
             AtomicReference<CommandDispatcher> dispatcher = new AtomicReference<>();
-            LeaderForwarder forwarder = new LeaderForwarder(raft, transport, dispatcher::get, config.requestTimeout(),
-                    config.maxBulkLength(), config.maxArrayLength());
+            LeaderForwarder forwarder = new LeaderForwarder(config.nodeId(), raft::leaderId, transport::forward,
+                    dispatcher::get, config.requestTimeout(), config.maxBulkLength(), config.maxArrayLength());
             CommandTable commands = StandardCommands.create(keyspace, clock, version(),
                     redisConfigParameters(config), () -> infoSections(config, raft));
             dispatcher.set(new CommandDispatcher(commands, forwarder));
