@@ -12,3 +12,6 @@ target/
 
 # Benchmark raw data is part of the documentation.
 !docs/benchmarks/results/**/*.log
+
+# Linearizability test results (histories, reports, visualizations).
+keyforge-chaos/results/

@@ -20,6 +20,7 @@
     <module>keyforge-raft</module>
     <module>keyforge-server</module>
     <module>keyforge-bench</module>
+    <module>keyforge-chaos</module>
   </modules>
 
   <properties>

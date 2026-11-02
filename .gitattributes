@@ -1,0 +1,2 @@
+# Shell scripts run in Git Bash and inside Linux containers (net-init.sh): keep LF line endings on every checkout.
+*.sh text eol=lf

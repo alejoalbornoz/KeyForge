@@ -1,12 +1,24 @@
-# A three-node KeyForge cluster (Raft) in Linux containers.
+# A five-node KeyForge cluster (Raft) in Linux containers, prepared for fault injection.
 #
 # Build the server jar first:   ./mvnw -q package -DskipTests
-# Start:                        docker compose -f keyforge-chaos/docker-compose.yml up -d
-# Talk to it:                   docker compose -f keyforge-chaos/docker-compose.yml exec client redis-cli -h kf1
+# Start:                        docker compose -f keyforge-chaos/docker-compose.yml -p keyforge up -d
+# Talk to it:                   docker compose -f keyforge-chaos/docker-compose.yml -p keyforge exec client redis-cli -h kf1
 # Leader-kill check:            keyforge-chaos/scripts/leader-failover.sh
+# Linearizability under faults: keyforge-chaos/scripts/linearizability.sh (builds and runs the "runner" service too)
 #
 # Every node accepts every command: followers forward data commands to the leader. From the host, the nodes' RESP
-# ports are 6381, 6382 and 6383. Each node keeps its LSM store and Raft log in its own volume.
+# ports are 6381 to 6385. Each node keeps its LSM store and Raft log in its own volume.
+#
+# Each node is two containers (ADR 0016). kfN-net owns the node's network namespace: its address, its DNS name kfN and
+# its published port. The nemesis installs partitions and packet loss (iptables) and latency (Toxiproxy) there. kfN runs
+# the KeyForge server inside that namespace, so killing, pausing or restarting the server leaves the network, and any
+# fault installed in it, in place.
+
+x-net: &net
+  build: ./docker/net
+  image: keyforge-chaos-net:latest
+  cap_add: [NET_ADMIN]
+  restart: "no"
 
 x-node: &node
   image: eclipse-temurin:25-jdk
@@ -19,52 +31,116 @@ x-environment: &environment
   KEYFORGE_SERVER_TYPE: virtual-threads
   KEYFORGE_STORE_DATA_DIR: /data/store
   KEYFORGE_RAFT_DATA_DIR: /data/raft
-  KEYFORGE_CLUSTER_MEMBERS: node-1=kf1:7000,node-2=kf2:7000,node-3=kf3:7000
+  KEYFORGE_CLUSTER_MEMBERS: node-1=kf1:7000,node-2=kf2:7000,node-3=kf3:7000,node-4=kf4:7000,node-5=kf5:7000
   KEYFORGE_RAFT_ELECTION_TIMEOUT_MS: "1000"
   KEYFORGE_RAFT_HEARTBEAT_INTERVAL_MS: "100"
   # Lower it (SNAPSHOT_THRESHOLD=5000) to see snapshots, log compaction and InstallSnapshot.
   KEYFORGE_RAFT_SNAPSHOT_THRESHOLD: "${SNAPSHOT_THRESHOLD:-100000}"
 
 services:
+  kf1-net:
+    <<: *net
+    hostname: kf1
+    networks:
+      default:
+        aliases: [kf1]
+    ports: ["6381:6379"]
   kf1:
     <<: *node
-    hostname: kf1
+    network_mode: service:kf1-net
     environment:
       <<: *environment
       KEYFORGE_NODE_ID: node-1
-    ports: ["6381:6379"]
     volumes:
       - ../keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar:/app/server.jar:ro
       - kf1-data:/data
 
+  kf2-net:
+    <<: *net
+    hostname: kf2
+    networks:
+      default:
+        aliases: [kf2]
+    ports: ["6382:6379"]
   kf2:
     <<: *node
-    hostname: kf2
+    network_mode: service:kf2-net
     environment:
       <<: *environment
       KEYFORGE_NODE_ID: node-2
-    ports: ["6382:6379"]
     volumes:
       - ../keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar:/app/server.jar:ro
       - kf2-data:/data
 
+  kf3-net:
+    <<: *net
+    hostname: kf3
+    networks:
+      default:
+        aliases: [kf3]
+    ports: ["6383:6379"]
   kf3:
     <<: *node
-    hostname: kf3
+    network_mode: service:kf3-net
     environment:
       <<: *environment
       KEYFORGE_NODE_ID: node-3
-    ports: ["6383:6379"]
     volumes:
       - ../keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar:/app/server.jar:ro
       - kf3-data:/data
+
+  kf4-net:
+    <<: *net
+    hostname: kf4
+    networks:
+      default:
+        aliases: [kf4]
+    ports: ["6384:6379"]
+  kf4:
+    <<: *node
+    network_mode: service:kf4-net
+    environment:
+      <<: *environment
+      KEYFORGE_NODE_ID: node-4
+    volumes:
+      - ../keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar:/app/server.jar:ro
+      - kf4-data:/data
+
+  kf5-net:
+    <<: *net
+    hostname: kf5
+    networks:
+      default:
+        aliases: [kf5]
+    ports: ["6385:6379"]
+  kf5:
+    <<: *node
+    network_mode: service:kf5-net
+    environment:
+      <<: *environment
+      KEYFORGE_NODE_ID: node-5
+    volumes:
+      - ../keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar:/app/server.jar:ro
+      - kf5-data:/data
 
   # Stock Redis tools on the cluster's network: redis-cli and redis-benchmark.
   client:
     image: redis:7.4
     command: ["sleep", "infinity"]
 
+  # The linearizability test's runner, started on demand by scripts/linearizability.sh (docker compose run runner).
+  # It reaches the nodes on the cluster network and drives their containers through the host's Docker socket.
+  runner:
+    build: ./docker/runner
+    image: keyforge-chaos-runner:latest
+    profiles: [test]
+    volumes:
+      - ./target/keyforge-chaos-0.1.0-SNAPSHOT-all.jar:/app/chaos.jar:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
 volumes:
   kf1-data:
   kf2-data:
   kf3-data:
+  kf4-data:
+  kf5-data:

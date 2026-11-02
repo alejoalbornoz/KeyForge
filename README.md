@@ -4,11 +4,13 @@ A distributed key-value store written from scratch in Java 25. It speaks the Red
 `redis-cli` and `redis-benchmark` work against it unchanged. Under the hood it will run its own LSM-tree storage engine
 and its own Raft implementation, without any existing storage or consensus library.
 
-> **Status: Phase 4 of 7 complete.** RESP2 protocol, two interchangeable network front ends (Netty and virtual
+> **Status: Phase 5 of 7 complete.** RESP2 protocol, two interchangeable network front ends (Netty and virtual
 > threads, compared in [docs/benchmarks/netty-vs-virtual-threads.md](docs/benchmarks/netty-vs-virtual-threads.md)), a
 > durable LSM-tree storage engine (write-ahead log, memtable, SSTables, size-tiered compaction) whose data survives
 > `kill -9`, and Raft consensus: a node runs standalone or as a member of a replicated cluster with linearizable reads
-> and writes, which keeps serving when its leader is killed.
+> and writes, which keeps serving when its leader is killed. Phase 5 adds a Jepsen-style linearizability test, run in
+> one command: partitions, latency, packet loss, kills and pauses in a five-node Docker cluster, with histories checked
+> by Porcupine. Its first runs found two Phase 4 bugs (see [Phase 5 verification](#phase-5-verification)).
 
 ## Build
 
@@ -20,9 +22,15 @@ You need JDK 25. The Maven wrapper downloads Maven 3.9.16 on first use.
 
 `verify` runs unit tests, jqwik property tests and the integration tests (both real servers on both storage engines,
 driven by Jedis and by raw sockets; crash tests that kill writing processes; short load-generator and JMH runs; the
-10,000-seed Raft simulation; Raft clusters over real gRPC), then
-builds `keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar` and
-`keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar` (load generator and JMH benchmarks).
+10,000-seed Raft simulation; Raft clusters over real gRPC; the linearizability workload against in-process nodes that
+are killed and restarted). It then builds three jars:
+
+- `keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar`;
+- `keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar` (load generator and JMH benchmarks);
+- `keyforge-chaos/target/keyforge-chaos-0.1.0-SNAPSHOT-all.jar` (the linearizability test's runner).
+
+The Docker-based tests (`keyforge-chaos/scripts`) stay outside `verify`, and so do the Go checker's tests, which run
+when its image is built.
 
 ## Run
 
@@ -115,13 +123,47 @@ java -jar keyforge-server-0.1.0-SNAPSHOT-all.jar --node.id=node-1 --server.type=
   connections on it.
 - Membership is fixed: changing `cluster.members` of a running cluster is not supported.
 
-`keyforge-chaos/docker-compose.yml` starts a three-node cluster in containers, and
+`keyforge-chaos/docker-compose.yml` starts a five-node cluster in containers, and
 `keyforge-chaos/scripts/leader-failover.sh` kills its leader under load and checks what survived:
 
 ```bash
 ./mvnw -q package -DskipTests
 keyforge-chaos/scripts/leader-failover.sh
 ```
+
+### Testing linearizability under faults
+
+`keyforge-chaos/scripts/linearizability.sh` is a Jepsen-style test in one command
+([ADR 0015](docs/adr/0015-linearizability-checking-with-porcupine.md),
+[ADR 0016](docs/adr/0016-fault-injection-in-docker.md)). The cluster, the runner and the checker all run in containers,
+so it needs Docker (and JDK 25 to build the jars), and works from Linux, macOS or Git Bash on Windows:
+
+1. It starts a fresh five-node cluster.
+2. Fifteen clients run `GET`, `SET` and `INCR` on a few rotating keys. Meanwhile a nemesis injects faults, one at a
+   time:
+   - network partitions (iptables; isolated node, isolated leader, 2 | 3 halves, ring, bridge);
+   - latency (Toxiproxy on the Raft port);
+   - packet loss (iptables' random drop);
+   - SIGKILL and SIGSTOP of server processes.
+3. It heals the faults, reads every key once more, and records every invocation and completion (ok, fail, or info for
+   indeterminate) in a JSON history.
+4. It checks the history with [Porcupine](https://github.com/anishathalye/porcupine), run as a small Go program in
+   Docker (`keyforge-chaos/checker`), and prints the verdict: `LINEARIZABLE`, `NOT LINEARIZABLE` or `UNKNOWN` if the
+   checker timed out.
+
+```bash
+keyforge-chaos/scripts/linearizability.sh                           # five minutes of random partitions
+DURATION=120 NEMESIS=all keyforge-chaos/scripts/linearizability.sh  # partition, kill, pause, latency, loss
+NEMESIS=wipe DURATION=60 keyforge-chaos/scripts/linearizability.sh  # self-test: must report NOT LINEARIZABLE
+CHECK=keyforge-chaos/results/<run> keyforge-chaos/scripts/linearizability.sh  # re-check a saved history
+```
+
+Each run writes `keyforge-chaos/results/<time>-<nemesis>/` with `history.json`, `run.txt` (operations, latencies and
+the fault timeline) and `report.txt`/`report.json`. A run that is not linearizable also gets `linearizability.html`
+(Porcupine's visualization of the keys without a linearization, with the faults on the timeline) and `nodes.log`. The
+exit status is 0, 1 or 2 for the three verdicts, and 3 if the test could not run. Runner options such as `--clients`,
+`--rate`, `--fault-seconds` or `--seed` are passed through
+(`java -jar keyforge-chaos/target/keyforge-chaos-0.1.0-SNAPSHOT-all.jar --help`).
 
 ### Try it with the real Redis tools
 
@@ -160,7 +202,7 @@ Unknown commands, wrong arity and protocol errors use Redis 7's exact wording, f
 | `keyforge-storage` | `KeyValueStore` interface; the LSM engine (`io.keyforge.storage.lsm`: WAL, memtable, SSTables, manifest, compaction) and the segmented in-memory engine |
 | `keyforge-raft` | Raft: the pure core (`io.keyforge.raft`), the runtime that drives it, durable log and snapshot storage, the gRPC transport; the deterministic simulator in its tests |
 | `keyforge-server` | Command table and dispatcher, Netty and virtual-thread servers, configuration, `main`; in a cluster, the replicated state machine, ReadIndex reads and forwarding to the leader (`io.keyforge.server.cluster`) |
-| `keyforge-chaos` | Docker Compose cluster and failover script (Phase 5 adds fault injection and a linearizability checker) |
+| `keyforge-chaos` | Five-node Docker Compose cluster with a network container per node; the linearizability test: workload generator, history recorder and nemesis (Java, `io.keyforge.chaos`), Porcupine checker (Go, `checker/`), and the failover and linearizability scripts |
 | `keyforge-bench` | Load generator (open-loop RESP traffic, HdrHistogram latencies, server memory/threads/CPU from `/proc`) and JMH benchmarks of the LSM engine |
 
 Design decisions are recorded in [docs/adr](docs/adr/README.md).
@@ -292,3 +334,72 @@ What was checked on 2026-10-28 (Windows 10, JDK 25.0.5; the cluster in Linux con
     (p50 14 ms), and about 6,000 `GET`/s (p50 2.8 ms) with ReadIndex;
   - the killed node restarted, rejoined as a follower and caught up to the leader's index 43,003. With
     `SNAPSHOT_THRESHOLD=5000`, it caught up through InstallSnapshot (snapshot index 40,010).
+
+## Phase 5 verification
+
+What was checked on 2026-10-29 (Windows 10, JDK 25.0.5, Docker Desktop 29.6.1 on WSL 2; the cluster, the runner and the
+checker in Linux containers):
+
+- `./mvnw clean verify`: 403 unit and property tests and 79 integration tests pass (49 and 1 of them new, in
+  `keyforge-chaos`). For Phase 5 they include:
+  - the runner's unit tests: outcome classification, the history's JSON format, the RESP client against fake servers,
+    key rotation, partition shapes (jqwik properties), the fault planner, the Docker commands and the nemesis schedule;
+  - `ChaosRunIT`: the workload and the nemesis against three in-process nodes that are killed and restarted. Every
+    invocation completes exactly once, and every key reads back after healing.
+- The checker's 20 Go tests run while its image builds. Each of these must be reported as not linearizable: a stale
+  read, a lost write, a doubled `INCR`, a failed write that is later read. The checker's two reductions (ADR 0015) were
+  compared with the plain model on 3,000 random histories, with identical verdicts.
+- `keyforge-chaos/scripts/linearizability.sh`, five minutes of random partitions (the default), seed 2415729931015:
+  - 20 partitions: 6 isolated nodes, 4 isolated leaders, 4 splits into 2 | 3, 4 bridges, 2 rings;
+  - 27,629 operations over 94 keys;
+  - 10 elections, 25 snapshots and 5 InstallSnapshot restores (snapshot threshold 2,000);
+  - **LINEARIZABLE**. The cluster served again as soon as the faults were healed, and every key read back.
+
+  The run made 27,356 operations that completed (p50 4 ms for `GET`, 10 ms for writes, p99 about 190 ms), 128 that
+  failed and 145 that were indeterminate. Porcupine checked it in under a second.
+- `DURATION=120 NEMESIS=all`, with packet loss, latency, kills and pauses (including the leader's): **NOT
+  LINEARIZABLE**. The checker found Phase 4's known forwarding issue (ADR 0014) on the real cluster:
+  - The nemesis killed the leader kf5 while three followers had `INCR`s of the same key forwarded to it.
+  - kf5 had committed one of them. The follower got `UNAVAILABLE` and retried on the new leader, so that increment was
+    applied twice.
+  - On a key at 2,043,000, the increments returned 2,043,002 to 2,043,006, and no client ever saw 2,043,001.
+
+  The run kept `history.json`, `linearizability.html` (the key's operations against the kill on the timeline) and
+  `nodes.log`.
+- `NEMESIS=wipe`, the self-test, was **NOT LINEARIZABLE** as it must be: after a majority lost its data, the final
+  reads found `nil` where 15 of 25 keys had acknowledged writes.
+- Two five-minute partition runs with seed 3856152790820 were linearizable, but **the cluster did not recover**: after
+  the last partition was healed, all five nodes stayed `pre_candidate` for minutes, with every port reachable and no
+  iptables rule or toxic left. This is a liveness bug in Phase 4's gRPC transport. `GrpcTransport.outboundStream`
+  starts a call and only then stores it in its map of streams. On a channel in `TRANSIENT_FAILURE`, which is what a
+  partition leaves behind, gRPC fails the call at once, and its `onError` can run before the store. `lost()` then
+  finds nothing to remove, the dead stream is stored, and every later message to that peer is accepted and dropped.
+  The node never reconnects on its own. A throwaway probe confirmed it: a node that sent to a peer while the peer was
+  down never reached it after it came up (0 of 10 tries), and with a guard against the race it did within a second
+  (10 of 10). The probe and the guard were removed again; Phase 4's code is unchanged.
+- The first runs, with the runner on the Windows host, showed why it now runs on the cluster network (ADR 0015).
+  Docker Desktop's port forwarder turned operations on killed nodes into indeterminate ones, and the checker gave up
+  on two keys with about 50 open increments each. With the reductions, the same history checks as linearizable in
+  under a second.
+- `keyforge-chaos/scripts/leader-failover.sh` still passes on the five-node cluster, with every Raft connection now
+  through Toxiproxy:
+  - a new leader 2.8 s after the kill;
+  - all 1,000 keys and the counter intact on all four survivors;
+  - about 950 `SET`/s and 3,500 `GET`/s through a follower.
+- Memory: the five servers and their network containers used about 625 MiB during a run.
+
+Open issues:
+
+- **Doubled forwarded writes** (found by the checker). Every retry of a forwarded write after `UNAVAILABLE` can apply
+  it twice. The fix is either:
+  - client sessions with request ids that the state machine deduplicates; or
+  - not retrying once the request may have reached the leader, and answering with an unknown-outcome error instead.
+- **Transport liveness** (found by the nemesis). A stream that fails while it is being opened is kept as if alive. The
+  fix is a "closed" flag that `outboundStream` checks after storing the stream, plus a regression test like the probe.
+- `KeyForgeNode.close()` interrupts the Raft thread during an fsync, and `RaftRuntime` logs a
+  `ClosedByInterruptException` as a node failure. It only happens on a clean in-process stop, and only the log line is
+  wrong.
+- The nemesis injects one fault at a time and no clock skew. Latency applies to the connections a node accepts. The
+  workload uses single-key commands only.
+- When a cluster does not recover, the final reads fail and a lost write at the very end can go unnoticed. The script
+  warns about it.

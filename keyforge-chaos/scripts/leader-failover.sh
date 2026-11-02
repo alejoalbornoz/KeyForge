@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Phase 4 acceptance check: a three-node cluster in Docker Compose accepts writes and survives killing the leader.
+# Phase 4 acceptance check: a five-node cluster in Docker Compose accepts writes and survives killing the leader.
 #
 #  1. Starts a fresh cluster (keyforge-chaos/docker-compose.yml) and waits for a leader.
 #  2. Writes KEYS keys and KEYS increments of one counter through a follower, which forwards them to the leader.
-#  3. Kills the leader with SIGKILL and waits for the two survivors to elect a new one.
-#  4. Checks every acknowledged write on both survivors, then writes KEYS more keys through them.
+#  3. Kills the leader with SIGKILL and waits for the four survivors to elect a new one.
+#  4. Checks every acknowledged write on every survivor, then writes KEYS more keys through them.
 #  5. Runs redis-benchmark against a follower of the new leader.
 #  6. Restarts the killed node and waits until it has caught up with the leader's commit index.
 #
@@ -18,7 +18,7 @@ set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 KEYS=${KEYS:-1000}
-NODES=(kf1 kf2 kf3)
+NODES=(kf1 kf2 kf3 kf4 kf5)
 JAR=$ROOT/keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar
 [[ -f $JAR ]] || { echo "Missing $JAR; run ./mvnw -q package -DskipTests first" >&2; exit 1; }
 
@@ -58,9 +58,10 @@ wait_for_leader() {
 cleanup() { [[ ${KEEP:-0} == 1 ]] || "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
-echo "=== Starting a fresh three-node cluster"
+echo "=== Starting a fresh five-node cluster"
 "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
-"${COMPOSE[@]}" up -d 2>&1 | grep -v "Creating\|Starting" || true
+build_log=$("${COMPOSE[@]}" build --quiet 2>&1) || fail "building the network image: $build_log"
+"${COMPOSE[@]}" up -d --no-build 2>&1 | grep -v "Creat\|Start" || true
 for node in "${NODES[@]}"; do
   until [[ $(cli "$node" PING 2>/dev/null) == PONG ]]; do sleep 0.5; done
 done
@@ -105,7 +106,7 @@ expect "DBSIZE via ${SURVIVORS[1]}" $(( 2 * KEYS + 1 )) "$(cli "${SURVIVORS[1]}"
 NEW_FOLLOWER=$(first_other_than "$NEW_LEADER" "${SURVIVORS[@]}")
 echo "=== redis-benchmark against follower $NEW_FOLLOWER (forwarded to $NEW_LEADER)"
 "${COMPOSE[@]}" exec -T client redis-benchmark -h "$NEW_FOLLOWER" -t set,get,incr -n 20000 -c 20 -q | tr '\r' '\n' \
-  | grep -v '^$' | grep -v 'rps=' || true
+  | grep -v '^ *$' | grep -v 'rps=' || true
 
 echo "=== Restarting $LEADER"
 "${COMPOSE[@]}" start "$LEADER" >/dev/null 2>&1
