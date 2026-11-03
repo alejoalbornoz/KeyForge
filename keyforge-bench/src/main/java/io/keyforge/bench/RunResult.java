@@ -74,13 +74,13 @@ public record RunResult(
         double serverCpuCores,
         double clientCpuCores) {
 
-    static final String CSV_HEADER = "label,transport,connections,connected,connect_s,mode,target_rps,achieved_rps,"
-            + "requests,errors,disconnects,duration_s,p50_us,p90_us,p99_us,p999_us,p9999_us,max_us,mean_us,"
-            + "timer_lag_p99_us,timer_lag_max_us,server_rss_base_mb,server_rss_idle_mb,server_rss_peak_mb,"
+    public static final String CSV_HEADER = "label,transport,connections,connected,connect_s,mode,target_rps,"
+            + "achieved_rps,requests,errors,disconnects,duration_s,p50_us,p90_us,p99_us,p999_us,p9999_us,max_us,"
+            + "mean_us,timer_lag_p99_us,timer_lag_max_us,server_rss_base_mb,server_rss_idle_mb,server_rss_peak_mb,"
             + "server_heap_base_mb,server_heap_idle_mb,server_threads_idle,server_threads_peak,server_cpu_cores,"
             + "client_cpu_cores";
 
-    String toCsv() {
+    public String toCsv() {
         return String.join(",",
                 label, transport, Integer.toString(connections), Integer.toString(connected), f1(connectSeconds),
                 openLoop ? "open" : "closed", Integer.toString(targetRate), f1(achievedRate),

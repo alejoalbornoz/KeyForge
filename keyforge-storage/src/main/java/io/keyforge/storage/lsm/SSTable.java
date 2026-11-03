@@ -136,7 +136,7 @@ final class SSTable {
             return null;
         }
         byte[] content = readDataBlock(block);
-        ByteReader in = new ByteReader(content, path + " block " + block);
+        ByteReader in = new ByteReader(content, new BlockName(path, block));
         while (in.hasRemaining()) {
             int type = in.readByte();
             int keyLength = in.readLength();
@@ -255,7 +255,18 @@ final class SSTable {
     }
 
     private ByteReader openBlock(int block) {
-        return new ByteReader(readDataBlock(block), path + " block " + block);
+        return new ByteReader(readDataBlock(block), new BlockName(path, block));
+    }
+
+    /**
+     * A data block named for error messages. Every point lookup that passes the Bloom filter reads a block, so the name
+     * is built only when an error needs it, not on every lookup.
+     */
+    private record BlockName(Path table, int block) {
+        @Override
+        public String toString() {
+            return table + " block " + block;
+        }
     }
 
     private byte[] readDataBlock(int block) {

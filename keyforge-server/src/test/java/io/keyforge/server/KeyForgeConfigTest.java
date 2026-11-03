@@ -89,6 +89,24 @@ class KeyForgeConfigTest {
     }
 
     @Test
+    void metricsAreOffUntilAPortIsGiven() {
+        KeyForgeConfig defaults = KeyForgeConfig.defaults();
+        assertThat(defaults.metricsPort()).isZero();
+        assertThat(defaults.metricsBind()).isEqualTo("0.0.0.0");
+        assertThat(defaults.metricsEnabled()).isFalse();
+
+        KeyForgeConfig config = KeyForgeConfig.load(null, Map.of("KEYFORGE_METRICS_PORT", "9464"),
+                Map.of("metrics.bind", "127.0.0.1"));
+        assertThat(config.metricsEnabled()).isTrue();
+        assertThat(config.metricsPort()).isEqualTo(9464);
+        assertThat(config.metricsBind()).isEqualTo("127.0.0.1");
+        assertThat(config.toProperties()).containsEntry("metrics.port", "9464");
+
+        assertThatThrownBy(() -> KeyForgeConfig.load(null, Map.of(), Map.of("metrics.port", "-1")))
+                .hasMessage("Property 'metrics.port' must be between 0 and 65535");
+    }
+
+    @Test
     void environmentVariableNames() {
         assertThat(KeyForgeConfig.environmentVariable("server.io-threads")).isEqualTo("KEYFORGE_SERVER_IO_THREADS");
         assertThat(KeyForgeConfig.environmentVariable("store.active-expire-interval-ms"))

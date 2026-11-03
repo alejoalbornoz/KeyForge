@@ -1,0 +1,13 @@
+[0.014s][info][gc] Using G1
+19:50:37.233 INFO  [main] [kf-target] io.keyforge.server.KeyForgeMain - Starting KeyForge 0.1.0-SNAPSHOT with {node.id=kf-target, server.bind=0.0.0.0, server.port=6379, server.type=netty, server.io-threads=0, protocol.max-bulk-length=536870912, protocol.max-array-length=1048576, store.engine=memory, store.data-dir=data, store.wal.fsync-policy=group-commit, store.wal.group-commit-interval-ms=10, store.wal.group-commit-bytes=1048576, store.memtable-size-bytes=67108864, store.segments=256, store.active-expire-interval-ms=100, cluster.members=, raft.bind=0.0.0.0, raft.data-dir=raft, raft.election-timeout-ms=1000, raft.heartbeat-interval-ms=100, raft.snapshot-threshold=100000, raft.request-timeout-ms=5000, metrics.bind=0.0.0.0, metrics.port=0}
+[1.183s][info][gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause) 17M->4M(126M) 11.854ms
+19:50:38.007 INFO  [main] [kf-target] io.keyforge.server.KeyForgeMain - Ready to accept connections on 0.0.0.0:6379
+[5.329s][info][gc] GC(1) Pause Full (Diagnostic Command) 47M->26M(94M) 100.295ms
+[7.126s][info][gc] GC(2) Pause Full (Diagnostic Command) 27M->26M(94M) 36.614ms
+[10.640s][info][gc] GC(3) Pause Young (Normal) (G1 Evacuation Pause) 54M->27M(94M) 6.100ms
+[14.748s][info][gc] GC(4) Pause Young (Normal) (G1 Evacuation Pause) 60M->29M(94M) 4.018ms
+[19.630s][info][gc] GC(5) Pause Young (Normal) (G1 Evacuation Pause) 68M->29M(94M) 5.014ms
+[25.276s][info][gc] GC(6) Pause Young (Normal) (G1 Evacuation Pause) 74M->31M(94M) 9.096ms
+[31.131s][info][gc] GC(7) Pause Young (Normal) (G1 Evacuation Pause) 78M->32M(94M) 7.544ms
+[37.115s][info][gc] GC(8) Pause Young (Normal) (G1 Evacuation Pause) 80M->32M(94M) 8.798ms
+[43.376s][info][gc] GC(9) Pause Young (Normal) (G1 Evacuation Pause) 82M->33M(94M) 5.129ms

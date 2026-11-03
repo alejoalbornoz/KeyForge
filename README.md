@@ -1,16 +1,119 @@
 # KeyForge
 
-A distributed key-value store written from scratch in Java 25. It speaks the Redis RESP2 protocol, so stock
-`redis-cli` and `redis-benchmark` work against it unchanged. Under the hood it will run its own LSM-tree storage engine
-and its own Raft implementation, without any existing storage or consensus library.
+KeyForge is a distributed key-value store written from scratch in Java 25. It speaks the Redis RESP2 protocol, so
+`redis-cli`, `redis-benchmark` and Redis client libraries work against it unchanged. Underneath are its own LSM-tree
+storage engine (write-ahead log, memtable, SSTables, compaction) and its own Raft implementation (PreVote, ReadIndex
+reads, snapshots, forwarding to the leader), with no storage or consensus library. It is tested the way databases are:
+property tests against models, crash tests that kill writing processes, 10,000 seeds of a deterministic Raft simulator
+in every build, and a Jepsen-style linearizability test under partitions, kills and packet loss, checked by Porcupine.
+Next to Redis 8 on the same machine, one KeyForge node serves more unpipelined requests at the same median latency by
+using two cores, while it spends more CPU per request and pays for garbage collection in its tail
+([the comparison](docs/benchmarks/keyforge-vs-redis.md)).
 
-> **Status: Phase 5 of 7 complete.** RESP2 protocol, two interchangeable network front ends (Netty and virtual
-> threads, compared in [docs/benchmarks/netty-vs-virtual-threads.md](docs/benchmarks/netty-vs-virtual-threads.md)), a
-> durable LSM-tree storage engine (write-ahead log, memtable, SSTables, size-tiered compaction) whose data survives
-> `kill -9`, and Raft consensus: a node runs standalone or as a member of a replicated cluster with linearizable reads
-> and writes, which keeps serving when its leader is killed. Phase 5 adds a Jepsen-style linearizability test, run in
-> one command: partitions, latency, packet loss, kills and pauses in a five-node Docker cluster, with histories checked
-> by Porcupine. Its first runs found two Phase 4 bugs (see [Phase 5 verification](#phase-5-verification)).
+> **Status: Phase 6 of 7 complete.** RESP2 protocol, two interchangeable network front ends (Netty and virtual
+> threads), a durable LSM-tree storage engine whose data survives `kill -9`, and Raft consensus with linearizable reads
+> and writes, verified under faults by a Jepsen-style test. Phase 6 adds the benchmark against real Redis, Prometheus
+> metrics with a Grafana dashboard, and a `docker compose up` quick start (see
+> [Phase 6 verification](#phase-6-verification)).
+
+![redis-benchmark throughput without pipelining: Redis, KeyForge in memory, on the LSM engine and in a three-node cluster](docs/benchmarks/charts/throughput-pipeline-1.svg)
+
+Without pipelining, a KeyForge node in memory serves 111–121k requests per second on two vCPUs, against 60–89k for Redis
+on its single thread, but spends 1.0–1.3× Redis's CPU per request (1.3–2.3× with a pipeline of 16). Durable writes
+behind the virtual-thread front end come within 4–7% of Redis with an append-only file; behind Netty, they are a third
+of that. A three-node cluster on the same two vCPUs commits about 2,000 writes per second.
+
+![Open-loop latency at 20,000 requests per second, corrected for coordinated omission](docs/benchmarks/charts/latency-20000rps.svg)
+
+At 20,000 requests per second, measured from each request's intended send time, the medians are equal (0.13–0.17 ms).
+In a typical second Redis's p99 is 0.45–0.65 ms and KeyForge's 2.7–7.3 ms, mostly GC pauses. Tails beyond that are
+dominated by this desktop's jitter and differ between runs; the LSM engine with virtual threads stalled in this pass
+and not in the other. Both passes, CPU accounting and JFR profiles:
+[docs/benchmarks/keyforge-vs-redis.md](docs/benchmarks/keyforge-vs-redis.md).
+
+## Quick start
+
+You need Docker, nothing else:
+
+```bash
+docker compose up -d
+```
+
+The first run builds the server image from source, which takes a few minutes. Then the root
+[`docker-compose.yml`](docker-compose.yml) runs:
+
+- a three-node Raft cluster, `kf1`, `kf2` and `kf3`, on host ports 6379, 6380 and 6381;
+- Prometheus at <http://localhost:9090>, scraping every node's `/metrics` every 5 seconds;
+- Grafana at <http://localhost:3000>, with the KeyForge dashboard as its home page (anonymous viewer; `admin`/`admin`
+  to edit).
+
+Any node accepts any command, because followers forward to the leader:
+
+```bash
+redis-cli -p 6380 SET hello world
+redis-cli -p 6381 GET hello
+redis-cli -p 6379 INFO raft
+```
+
+Without a local `redis-cli`, use the one in the Redis image:
+
+```bash
+docker run --rm --network keyforge-quickstart_default redis:8 redis-cli -h kf2 SET hello world
+```
+
+To give the dashboard something to show, start some `redis-benchmark` traffic, then stop everything and delete the data:
+
+```bash
+docker compose --profile load up -d load
+```
+
+```bash
+docker compose --profile load down -v
+```
+
+## Architecture
+
+```mermaid
+flowchart LR
+    clients["Clients<br/>redis-cli, redis-benchmark,<br/>any RESP2 library"]
+    peers["Other nodes"]
+    prometheus["Prometheus and Grafana"]
+
+    subgraph node["KeyForge node: one JVM"]
+        direction TB
+        frontend["Front end<br/>Netty event loops or a virtual thread per connection<br/>RESP2 codec (keyforge-protocol)"]
+        dispatcher["Command dispatcher<br/>command table, per-command timers"]
+        subgraph cluster["Cluster mode"]
+            direction TB
+            keyspace["Replicated keyspace<br/>writes proposed to the log<br/>reads confirmed with ReadIndex"]
+            forwarder["Leader forwarder<br/>on followers"]
+            raft["Raft core (keyforge-raft), a pure state machine<br/>runtime: log, batched fsync, snapshots"]
+        end
+        lsm["LSM engine (keyforge-storage)<br/>WAL, memtable, SSTables,<br/>size-tiered compaction"]
+        metrics["GET /metrics<br/>Micrometer, Prometheus format"]
+    end
+
+    clients -->|"RESP2 over TCP"| frontend
+    frontend --> dispatcher
+    dispatcher -->|"standalone"| lsm
+    dispatcher -->|"cluster"| keyspace
+    dispatcher -->|"data command on a follower"| forwarder
+    keyspace --> raft
+    raft -->|"apply committed entries"| lsm
+    forwarder -->|"gRPC Forward"| peers
+    raft <-->|"gRPC: votes, AppendEntries, InstallSnapshot"| peers
+    metrics -.-> prometheus
+```
+
+- **Front end.** Two interchangeable servers share the codec and the dispatcher: Netty, or one virtual thread per
+  connection ([ADR 0002](docs/adr/0002-threading-model-and-in-memory-store.md),
+  [ADR 0005](docs/adr/0005-virtual-thread-server-and-pinning.md)).
+- **Storage.** On a standalone node, writes go to the LSM engine's write-ahead log and memtable on one writer thread,
+  and reads take no lock ([ADR 0006](docs/adr/0006-lsm-storage-engine.md)). The in-memory engine is the alternative.
+- **Replication.** In a cluster the Raft log is the only write-ahead log. Committed entries are applied to the LSM
+  engine, which records the last applied index ([ADR 0009](docs/adr/0009-raft-as-a-pure-state-machine.md),
+  [ADR 0012](docs/adr/0012-no-double-wal.md)). The Raft core never does I/O itself, which is what lets the
+  deterministic simulator test it ([ADR 0013](docs/adr/0013-deterministic-simulation-testing.md)).
 
 ## Build
 
@@ -23,14 +126,15 @@ You need JDK 25. The Maven wrapper downloads Maven 3.9.16 on first use.
 `verify` runs unit tests, jqwik property tests and the integration tests (both real servers on both storage engines,
 driven by Jedis and by raw sockets; crash tests that kill writing processes; short load-generator and JMH runs; the
 10,000-seed Raft simulation; Raft clusters over real gRPC; the linearizability workload against in-process nodes that
-are killed and restarted). It then builds three jars:
+are killed and restarted; the `/metrics` endpoint scraped over HTTP, and the Grafana dashboard checked against the
+metrics a node exports). It then builds three jars:
 
 - `keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar`;
 - `keyforge-bench/target/keyforge-bench-0.1.0-SNAPSHOT-all.jar` (load generator and JMH benchmarks);
 - `keyforge-chaos/target/keyforge-chaos-0.1.0-SNAPSHOT-all.jar` (the linearizability test's runner).
 
-The Docker-based tests (`keyforge-chaos/scripts`) stay outside `verify`, and so do the Go checker's tests, which run
-when its image is built.
+The Docker-based tests (`keyforge-chaos/scripts`) and benchmarks (`keyforge-bench/scripts`) stay outside `verify`, and
+so do the Go checker's tests, which run when its image is built.
 
 ## Run
 
@@ -65,6 +169,8 @@ then command-line overrides:
 | `raft.heartbeat-interval-ms` | `KEYFORGE_RAFT_HEARTBEAT_INTERVAL_MS` | `100` | Raft: leader heartbeat period |
 | `raft.snapshot-threshold` | `KEYFORGE_RAFT_SNAPSHOT_THRESHOLD` | `100000` | Raft: applied entries between snapshots (and log compactions) |
 | `raft.request-timeout-ms` | `KEYFORGE_RAFT_REQUEST_TIMEOUT_MS` | `5000` | Raft: how long a command waits for its commit, read confirmation or the leader |
+| `metrics.port` | `KEYFORGE_METRICS_PORT` | `0` | Port of the Prometheus endpoint `GET /metrics`; 0 = no metrics at all ([Monitoring](#monitoring)) |
+| `metrics.bind` | `KEYFORGE_METRICS_BIND` | `0.0.0.0` | Address the Prometheus endpoint listens on |
 
 Example: `java -jar keyforge-server-...-all.jar --server.port=6380 --server.bind=127.0.0.1`
 
@@ -76,6 +182,10 @@ Both front ends share the RESP codec and the command dispatcher and pass the sam
   ([ADR 0002](docs/adr/0002-threading-model-and-in-memory-store.md), [ADR 0004](docs/adr/0004-flushing-and-backpressure.md)).
 - `virtual-threads`: a `ServerSocket` accept loop and one virtual thread per connection doing blocking reads and
   writes ([ADR 0005](docs/adr/0005-virtual-thread-server-and-pinning.md)).
+
+With the LSM engine or in a cluster, prefer `virtual-threads`: a write waits for its commit, which on Netty blocks the
+event loop and every other connection on it. Unpipelined, durable `SET`s ran 2.6 times faster behind virtual threads
+(73–74k against 28k per second, [the Redis comparison](docs/benchmarks/keyforge-vs-redis.md)).
 
 ```bash
 java -jar keyforge-server/target/keyforge-server-0.1.0-SNAPSHOT-all.jar --server.type=virtual-threads
@@ -168,6 +278,31 @@ exit status is 0, 1 or 2 for the three verdicts, and 3 if the test could not run
 `--rate`, `--fault-seconds` or `--seed` are passed through
 (`java -jar keyforge-chaos/target/keyforge-chaos-0.1.0-SNAPSHOT-all.jar --help`).
 
+### Monitoring
+
+With `metrics.port` set, a node serves its metrics at `GET /metrics` in the Prometheus text format, on the JDK's
+built-in HTTP server and apart from the RESP port ([ADR 0019](docs/adr/0019-metrics-and-dashboard.md)). Every series
+carries a `node` label with the node id:
+
+| Metric | Type | Meaning |
+| --- | --- | --- |
+| `keyforge_commands_seconds` | histogram, label `command` | Dispatch to reply on this node (Raft commit and forwarding included), buckets from 10 µs to 10 s |
+| `keyforge_command_errors_total` | counter, label `command` | Error replies |
+| `keyforge_raft_leader`, `keyforge_raft_role` | gauges | 1 on the leader; one series per role, 1 for the current one |
+| `keyforge_raft_term` | gauge | Current term |
+| `keyforge_raft_commit_index`, `keyforge_raft_applied_index`, `keyforge_raft_last_log_index`, `keyforge_raft_snapshot_index` | gauges | Log positions |
+| `keyforge_raft_apply_lag` | gauge | Committed entries not applied yet |
+| `keyforge_lsm_flushes_total`, `keyforge_lsm_flushed_bytes_total` | counters | Memtables written out, and their bytes |
+| `keyforge_lsm_compactions_total`, `keyforge_lsm_compaction_read_bytes_total`, `keyforge_lsm_compaction_written_bytes_total`, `keyforge_lsm_compaction_seconds_total` | counters | Compactions, their I/O and their time |
+| `keyforge_lsm_sstables`, `keyforge_lsm_sstable_bytes`, `keyforge_lsm_memtable_bytes`, `keyforge_lsm_immutable_memtables` | gauges | Shape of the tree |
+| `jvm_*`, `process_*`, `system_*` | | Micrometer's JVM meters: memory, GC pauses, threads, CPU, uptime |
+
+[`deploy/grafana/dashboards/keyforge.json`](deploy/grafana/dashboards/keyforge.json) is a Grafana dashboard over these
+metrics: the leader, the term, commit index and apply lag per node, p99 latency by command and by node, throughput and
+errors, flushes, compactions and their I/O, SSTables and memtables, heap and GC pause time. The
+[quick start](#quick-start) provisions it with Prometheus; to use it elsewhere, import the JSON and pick a Prometheus
+data source.
+
 ### Try it with the real Redis tools
 
 If you have no local Redis install, use the official image. On Docker Desktop, `host.docker.internal` reaches the host:
@@ -208,9 +343,55 @@ Unknown commands, wrong arity and protocol errors use Redis 7's exact wording, f
 | `keyforge-chaos` | Five-node Docker Compose cluster with a network container per node; the linearizability test: workload generator, history recorder and nemesis (Java, `io.keyforge.chaos`), Porcupine checker (Go, `checker/`), and the failover and linearizability scripts |
 | `keyforge-bench` | Load generator (open-loop RESP traffic, HdrHistogram latencies, server memory/threads/CPU from `/proc`) and JMH benchmarks of the LSM engine |
 
-Design decisions are recorded in [docs/adr](docs/adr/README.md).
+## Design decisions
+
+Every important decision has an Architecture Decision Record (context, decision, consequences, alternatives
+considered), indexed in [docs/adr](docs/adr/README.md):
+
+- Protocol and front ends: [0001](docs/adr/0001-resp-codec.md) RESP codec,
+  [0002](docs/adr/0002-threading-model-and-in-memory-store.md) threading model and in-memory store,
+  [0003](docs/adr/0003-key-expiration.md) key expiration, [0004](docs/adr/0004-flushing-and-backpressure.md) flushing
+  and backpressure, [0005](docs/adr/0005-virtual-thread-server-and-pinning.md) virtual-thread server and pinning.
+- Storage: [0006](docs/adr/0006-lsm-storage-engine.md) LSM engine,
+  [0007](docs/adr/0007-wal-fsync-policies-and-recovery.md) WAL, fsync policies and recovery,
+  [0008](docs/adr/0008-size-tiered-compaction.md) size-tiered compaction.
+- Replication: [0009](docs/adr/0009-raft-as-a-pure-state-machine.md) Raft as a pure state machine,
+  [0010](docs/adr/0010-linearizable-reads-with-readindex.md) ReadIndex reads,
+  [0011](docs/adr/0011-deterministic-expiry-under-raft.md) deterministic expiry,
+  [0012](docs/adr/0012-no-double-wal.md) no double WAL,
+  [0013](docs/adr/0013-deterministic-simulation-testing.md) deterministic simulation testing,
+  [0014](docs/adr/0014-grpc-transport-and-client-forwarding.md) gRPC transport and forwarding,
+  [0017](docs/adr/0017-retry-only-what-certainly-had-no-effect.md) retrying only what certainly had no effect.
+- Verification: [0015](docs/adr/0015-linearizability-checking-with-porcupine.md) linearizability checking with
+  Porcupine, [0016](docs/adr/0016-fault-injection-in-docker.md) fault injection in Docker.
+- Performance and operations: [0018](docs/adr/0018-benchmarking-against-redis.md) benchmarking against Redis,
+  [0019](docs/adr/0019-metrics-and-dashboard.md) metrics, `/metrics` and the Grafana dashboard.
 
 ## Benchmarks
+
+### KeyForge vs Redis
+
+`keyforge-bench/scripts/compare-with-redis.sh` runs Redis 8 (without persistence, and with an append-only file fsynced
+every second) and KeyForge (in memory, on the LSM engine behind Netty and behind virtual threads, and as a three-node
+cluster with clients on the leader and on a follower) on the same machine, each in a fresh container pinned to the same
+two vCPUs ([ADR 0018](docs/adr/0018-benchmarking-against-redis.md)):
+
+- **throughput:** stock `redis-benchmark` (`SET`, `GET`, `INCR`, without pipelining and with a pipeline of 16), with
+  the servers' CPU time per request from their cgroups;
+- **latency:** the open-loop load generator at fixed rates, with every latency measured from the request's intended
+  send time, so that stalls are not hidden (coordinated omission), and the full distributions kept as HdrHistogram
+  files.
+
+It needs Docker and the jars, and writes CSV files, `.hgrm` distributions, SVG charts and Markdown tables:
+
+```bash
+./mvnw -q package -DskipTests
+keyforge-bench/scripts/compare-with-redis.sh
+```
+
+Results, both passes and the analysis of the gap: [docs/benchmarks/keyforge-vs-redis.md](docs/benchmarks/keyforge-vs-redis.md).
+
+### Netty vs virtual threads
 
 `keyforge-bench/scripts/run-benchmarks.sh` compares the two front ends at 1k, 10k and 50k connections. Every run uses a
 fresh server container and a load-generator container on one Docker network, pinned to separate CPUs. It reports
@@ -430,3 +611,73 @@ Open issues:
   workload uses single-key commands only.
 - When a cluster does not recover, the final reads fail and a lost write at the very end can go unnoticed. The script
   warns about it.
+
+## Phase 6 verification
+
+What was checked on 2026-11-03 (Windows 10, JDK 25.0.5, Docker Desktop 29.6.1 on WSL 2; the benchmarks and the quick
+start in Linux containers, Redis 8.10.3 from the `redis:8` image):
+
+- `./mvnw clean verify`: 443 unit and property tests and 83 integration tests pass (30 and 4 of them new). For Phase 6:
+  - `GrafanaDashboardTest`: the dashboard parses as JSON, its panels fit Grafana's 24-column grid, and every
+    `keyforge_*` and `jvm_*` metric its 21 queries use is in the scrape of a cluster node's meters, under the names the
+    Prometheus registry gives them. The command-latency buckets span 10 µs to 10 s.
+  - `MetricsEndpointIT`: a real node with `metrics.port` set, driven by Jedis. Its `/metrics` has every command's
+    count and error count, the LSM engine's flushes and tables and the JVM's meters, all tagged with the node id. Only
+    `GET` and `HEAD` are served, closing the node closes the endpoint, and without `metrics.port` there is none.
+  - `MetricsTest`: one timer per command, created up front; error replies counted; no clock read without an observer;
+    the Raft and LSM meters following their sources, including after a GC. With Micrometer's default weak references
+    that last test fails: the endpoint test caught the bug (meters reading 0 after a collection) during development.
+  - The report generator (`ResultFilesTest`, `ChartsTest`, `BenchmarkReportTest`): redis-benchmark, load-generator and
+    HdrHistogram files parse, bars and percentile axes have the right geometry, summary tables are exact.
+  - `LsmKeyValueStoreTest` (the new `stats()`), `KeyForgeConfigTest` (the metrics settings) and `RequestTemplatesTest`
+    (`MSET` batches for prepopulation).
+- `keyforge-bench/scripts/compare-with-redis.sh`, two full passes: 84 redis-benchmark runs and 28 open-loop runs over
+  seven targets, with no error replies and no dropped connections. Results and the analysis of the gap are in
+  [docs/benchmarks/keyforge-vs-redis.md](docs/benchmarks/keyforge-vs-redis.md):
+  - without pipelining, KeyForge in memory served 111–121k requests per second against Redis's 60–89k, at 1.0–1.3×
+    Redis's CPU per request (1.3–2.3× with a pipeline of 16);
+  - durable `SET`s: 73–74k per second behind virtual threads and 28k behind Netty, against 77–78k for Redis with
+    `appendfsync everysec`; the three-node cluster committed 1.9–2.4k per second;
+  - at 20,000 requests per second the medians were equal (0.13–0.17 ms), and the typical second's p99 was 0.45–0.65 ms
+    for Redis and 2.7–7.3 ms for KeyForge in memory. Whole-run tails differed by more than 5× between the passes in 10
+    of 14 cells, for Redis as much as for KeyForge.
+- JFR profiles of KeyForge under redis-benchmark explain the gap: memory latency in the hash lookup, per-reply Netty
+  buffers, per-request garbage and the GC pauses it causes, and memtable inserts on the LSM write path. One fix came
+  out of them: `SSTable.get` built an error-message string on every lookup. JMH with `-prof gc` shows 3% less
+  allocation per SSTable lookup (4,608 to 4,456–4,496 bytes); the time difference is within the noise.
+- With `metrics.port` set, the in-memory node's CPU per request rose 11–29% with a pipeline of 16, and stayed within
+  the noise without pipelining. Metrics are off by default.
+- The quick start, with the stack started from scratch:
+  - `docker compose up -d` built the server image from source (the Maven step took 42 s) and started three nodes,
+    which elected a leader;
+  - a `SET` through `kf2` was read through `kf3`, and the host ports 6379, 6380 and 6381 answered `PING`;
+  - Prometheus scraped all three nodes. With the `load` profile running, every one of the dashboard's 21 queries
+    returned data from the live cluster;
+  - Grafana 12.1.0 opened with the KeyForge dashboard, whose data source answered, and the Raft row showed the
+    leader, the term and the commit indexes. `docker compose --profile load down -v` removed everything.
+
+  The first version of the compose file built the image once per node, so the next `up` (starting the load) recreated
+  the three nodes. The cluster recovered from its volumes and elected a new leader, but the command should not restart
+  it. Now `kf1` builds the image and the other nodes use it; after the fix, starting the load left the nodes running.
+
+Open issues:
+
+- **Durable writes behind Netty** block their event loop until the write is committed: 28k against 73–74k `SET`s per
+  second behind virtual threads. An asynchronous store API would let an event loop serve its other connections
+  meanwhile.
+- **GC pauses dominate KeyForge's tail latency.** Cheap allocation cuts the profile points to: a `nioBuffer()` view per
+  read in the frame decoder, `RespNumbers.parseLong(byte[])` wrapping its argument, JDK NIO's per-write objects (Netty's
+  native epoll transport would avoid them), and one reply buffer per batch instead of per reply (ADR 0004).
+- **SSTable point reads** copy the 4 KiB block out of the mapping before parsing it: about 4.5 KB allocated per lookup.
+- **Metrics cost** 0.3 to 0.6 µs per command, which shows when pipelining. Sampling or per-thread histograms would
+  reduce it.
+- **Unexplained:** the virtual-thread server with the LSM engine had queueing episodes at 20,000 requests per second in
+  one run out of three, and the cluster's throughput dipped for 4 seconds in one pass with no election or GC pause. The
+  nodes do not measure fsync latency, which would confirm or rule out the virtual disk.
+- A follower forwards reads to the leader, so reads through followers ran at a third of the leader's rate. Serving
+  ReadIndex reads on followers would spread them.
+- No comparison with Redis replication (`WAIT`), and none on dedicated Linux hardware.
+- There is no `keyforge-admin` module (admin endpoints for cluster status and compaction), deferred by the user's
+  choice of a plain `/metrics` endpoint (ADR 0019).
+- `VirtualThreadServerIT.servingRequestsNeverPinsAVirtualThread` timed out once (Jedis' 2 s read timeout) in the
+  baseline build, while other sessions loaded the machine. It passed in every run since.

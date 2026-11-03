@@ -10,14 +10,15 @@ final class ByteReader {
 
     private final byte[] buffer;
     private final int limit;
-    private final String source;
+    /** Names the data in error messages; only its {@code toString()} is used, and only when the data is corrupt. */
+    private final Object source;
     private int position;
 
-    ByteReader(byte[] buffer, String source) {
+    ByteReader(byte[] buffer, Object source) {
         this(buffer, 0, buffer.length, source);
     }
 
-    ByteReader(byte[] buffer, int offset, int length, String source) {
+    ByteReader(byte[] buffer, int offset, int length, Object source) {
         this.buffer = buffer;
         this.position = offset;
         this.limit = offset + length;

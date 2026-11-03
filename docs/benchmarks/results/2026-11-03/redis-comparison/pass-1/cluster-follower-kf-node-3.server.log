@@ -1,0 +1,24 @@
+[0.008s][info][gc] Using G1
+19:11:29.620 INFO  [main] [node-3] io.keyforge.server.KeyForgeMain - Starting KeyForge 0.1.0-SNAPSHOT with {node.id=node-3, server.bind=0.0.0.0, server.port=6379, server.type=virtual-threads, server.io-threads=0, protocol.max-bulk-length=536870912, protocol.max-array-length=1048576, store.engine=lsm, store.data-dir=/data/store, store.wal.fsync-policy=group-commit, store.wal.group-commit-interval-ms=10, store.wal.group-commit-bytes=1048576, store.memtable-size-bytes=67108864, store.segments=256, store.active-expire-interval-ms=100, cluster.members=node-1=kf-node-1:7000,node-2=kf-node-2:7000,node-3=kf-node-3:7000, raft.bind=0.0.0.0, raft.data-dir=/data/raft, raft.election-timeout-ms=1000, raft.heartbeat-interval-ms=100, raft.snapshot-threshold=100000, raft.request-timeout-ms=5000}
+19:11:29.680 INFO  [main] [node-3] i.k.storage.lsm.LsmKeyValueStore - Opened the LSM store in /data/store: 0 tables, 0 WAL records replayed, last sequence 0, replicated, applied log index 0, 36 ms
+[2.167s][info][gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause) 17M->4M(126M) 18.831ms
+19:11:29.818 INFO  [main] [node-3] i.k.raft.storage.FileRaftStorage - Opened Raft storage in /data/raft: term 0, voted for null, snapshot 0@0, 0 log entries
+19:11:29.857 INFO  [main] [node-3] i.keyforge.raft.runtime.RaftRuntime - Starting Raft node node-3 of [node-1, node-2, node-3]: term 0, applied 0, log (0, 0]
+19:11:32.509 INFO  [main] [node-3] io.keyforge.raft.grpc.GrpcTransport - Raft transport listening on 0.0.0.0:7000
+19:11:32.555 INFO  [main] [node-3] io.keyforge.server.KeyForgeMain - Ready to accept connections on 0.0.0.0:6379
+[5.096s][info][gc] GC(1) Pause Young (Normal) (G1 Evacuation Pause) 36M->8M(126M) 13.072ms
+19:11:32.905 INFO  [keyforge-raft] [node-3 term=1 index=0] i.keyforge.raft.runtime.RaftRuntime - Following no leader yet in term 1
+19:11:33.614 INFO  [keyforge-raft] [node-3 term=2 index=0] i.keyforge.raft.runtime.RaftRuntime - Following no leader yet in term 2
+19:11:33.646 INFO  [keyforge-raft] [node-3 term=2 index=0] i.keyforge.raft.runtime.RaftRuntime - Following node-1 in term 2
+[20.247s][info][gc] GC(2) Pause Young (Normal) (G1 Evacuation Pause) 64M->31M(126M) 26.637ms
+[47.271s][info][gc] GC(3) Pause Young (Normal) (G1 Evacuation Pause) 76M->37M(126M) 10.837ms
+[69.749s][info][gc] GC(4) Pause Young (Normal) (G1 Evacuation Pause) 84M->47M(126M) 10.567ms
+[79.216s][info][gc] GC(5) Pause Young (Normal) (G1 Evacuation Pause) 91M->66M(126M) 19.854ms
+[92.835s][info][gc] GC(6) Pause Young (Concurrent Start) (G1 Evacuation Pause) 98M->68M(126M) 11.228ms
+[92.836s][info][gc] GC(7) Concurrent Mark Cycle
+[92.914s][info][gc] GC(7) Pause Remark 68M->68M(126M) 6.156ms
+[92.938s][info][gc] GC(7) Pause Cleanup 68M->68M(126M) 0.024ms
+[92.939s][info][gc] GC(7) Concurrent Mark Cycle 103.301ms
+[106.999s][info][gc] GC(8) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 101M->69M(126M) 5.894ms
+19:13:28.605 INFO  [keyforge-raft] [node-3 term=3 index=14012] i.keyforge.raft.runtime.RaftRuntime - Following no leader yet in term 3
+19:13:28.613 INFO  [keyforge-raft] [node-3 term=3 index=14012] i.keyforge.raft.runtime.RaftRuntime - Following node-2 in term 3

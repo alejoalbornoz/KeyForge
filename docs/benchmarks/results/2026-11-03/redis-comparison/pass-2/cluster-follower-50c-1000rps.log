@@ -1,0 +1,50 @@
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+[cluster-follower] 50/50 connections in 0.3 s
+[cluster-follower] warmup   1s       898 req/s  p50   25199 us  p99   163840 us  p99.9   166986 us  | server RSS   237 MiB, 34 threads
+[cluster-follower] warmup   2s      1002 req/s  p50   17777 us  p99    60752 us  p99.9    68092 us  | server RSS   251 MiB, 34 threads
+[cluster-follower] warmup   3s       979 req/s  p50   13025 us  p99    56295 us  p99.9    63013 us  | server RSS   251 MiB, 34 threads
+[cluster-follower] warmup   4s      1021 req/s  p50   10969 us  p99    33407 us  p99.9    41026 us  | server RSS   251 MiB, 34 threads
+[cluster-follower] warmup   5s       730 req/s  p50   18481 us  p99   282853 us  p99.9   294912 us  | server RSS   251 MiB, 34 threads
+[cluster-follower] warmup   6s      1270 req/s  p50   18956 us  p99   305398 us  p99.9   310641 us  | server RSS   251 MiB, 34 threads
+[cluster-follower] warmup   7s       999 req/s  p50    7983 us  p99    30147 us  p99.9    41222 us  | server RSS   251 MiB, 34 threads
+[cluster-follower] warmup   8s      1001 req/s  p50    6668 us  p99    44204 us  p99.9    48890 us  | server RSS   252 MiB, 34 threads
+[cluster-follower] warmup   9s       949 req/s  p50    9740 us  p99    84017 us  p99.9    94241 us  | server RSS   252 MiB, 34 threads
+[cluster-follower] warmup  10s      1048 req/s  p50   11936 us  p99    74121 us  p99.9    88736 us  | server RSS   252 MiB, 34 threads
+[cluster-follower] measure   1s       996 req/s  p50    6980 us  p99    24166 us  p99.9    26853 us  | server RSS   252 MiB, 34 threads
+[cluster-follower] measure   2s      1004 req/s  p50    8430 us  p99    29737 us  p99.9    33063 us  | server RSS   252 MiB, 34 threads
+[cluster-follower] measure   3s      1000 req/s  p50    7479 us  p99    28000 us  p99.9    30261 us  | server RSS   252 MiB, 34 threads
+[cluster-follower] measure   4s      1000 req/s  p50    6849 us  p99    17023 us  p99.9    18170 us  | server RSS   252 MiB, 34 threads
+[cluster-follower] measure   5s      1000 req/s  p50    9871 us  p99    66290 us  p99.9    73466 us  | server RSS   262 MiB, 34 threads
+[cluster-follower] measure   6s       997 req/s  p50    8479 us  p99    39485 us  p99.9    43549 us  | server RSS   273 MiB, 34 threads
+[cluster-follower] measure   7s      1005 req/s  p50    9716 us  p99    62325 us  p99.9    76939 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure   8s      1000 req/s  p50    7475 us  p99    27181 us  p99.9    32096 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure   9s      1000 req/s  p50    7586 us  p99    28918 us  p99.9    31277 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  10s      1000 req/s  p50    7369 us  p99    21070 us  p99.9    25297 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  11s       998 req/s  p50    7193 us  p99    25559 us  p99.9    34767 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  12s      1002 req/s  p50    8069 us  p99    40141 us  p99.9    47383 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  13s       999 req/s  p50    7451 us  p99    43024 us  p99.9    54657 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  14s      1001 req/s  p50    7049 us  p99    21201 us  p99.9    30196 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  15s       998 req/s  p50    7582 us  p99    24773 us  p99.9    28426 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  16s      1002 req/s  p50    7279 us  p99    28066 us  p99.9    30261 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  17s       998 req/s  p50    7438 us  p99    20431 us  p99.9    35357 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  18s      1002 req/s  p50    6795 us  p99    19579 us  p99.9    21823 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  19s       998 req/s  p50    9380 us  p99    51905 us  p99.9    68223 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  20s      1002 req/s  p50    7496 us  p99    40600 us  p99.9    48497 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  21s       998 req/s  p50    8847 us  p99    28279 us  p99.9    31654 us  | server RSS   274 MiB, 34 threads
+[cluster-follower] measure  22s      1001 req/s  p50    7373 us  p99    23347 us  p99.9    26657 us  | server RSS   275 MiB, 34 threads
+[cluster-follower] measure  23s       999 req/s  p50    6836 us  p99    51479 us  p99.9    54690 us  | server RSS   275 MiB, 34 threads
+[cluster-follower] measure  24s      1000 req/s  p50    7107 us  p99    28705 us  p99.9    34243 us  | server RSS   275 MiB, 34 threads
+[cluster-follower] measure  25s       990 req/s  p50    6582 us  p99    24003 us  p99.9    28983 us  | server RSS   275 MiB, 34 threads
+[cluster-follower] measure  26s      1012 req/s  p50    8454 us  p99    32309 us  p99.9    35324 us  | server RSS   275 MiB, 34 threads
+[cluster-follower] measure  27s      1000 req/s  p50    7172 us  p99    26083 us  p99.9    33915 us  | server RSS   275 MiB, 34 threads
+[cluster-follower] measure  28s       577 req/s  p50  161874 us  p99   431751 us  p99.9   444596 us  | server RSS   275 MiB, 34 threads
+[cluster-follower] measure  29s       616 req/s  p50  617611 us  p99   852492 us  p99.9   879755 us  | server RSS   275 MiB, 34 threads
+[cluster-follower] measure  30s       533 req/s  p50 1050673 us  p99  1332740 us  p99.9  1341129 us  | server RSS   275 MiB, 34 threads
+cluster-follower: 50/50 connections (0.3 s to connect), open loop at 1000 req/s, epoll transport
+  throughput  958 req/s over 30.0 s (28728 replies, 0 errors, 0 disconnects)
+  latency us  p50 8008  p90 21529  p99 1023410  p99.9 1282408  p99.99 1337983  max 1341129  mean 44945
+  timer lag   p99 481 us  max 15737 us
+  server      RSS 225 MiB before connect, 226 MiB idle, 275 MiB peak; live heap 64.1 MiB before connect, 64.6 MiB idle; threads 34 idle, 34 peak; 0.41 cores
+  client      0.09 cores

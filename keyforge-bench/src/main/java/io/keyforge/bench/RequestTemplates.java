@@ -1,6 +1,7 @@
 package io.keyforge.bench;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.random.RandomGenerator;
@@ -16,12 +17,13 @@ final class RequestTemplates {
     private final byte[][] gets;
     private final byte[][] sets;
     private final double getRatio;
+    private final byte[] value;
 
     RequestTemplates(int keyspace, int valueSize, double getRatio) {
         this.getRatio = getRatio;
         this.gets = new byte[keyspace][];
         this.sets = new byte[keyspace][];
-        byte[] value = new byte[valueSize];
+        this.value = new byte[valueSize];
         Arrays.fill(value, (byte) 'v');
         byte[] get = ascii("GET");
         byte[] set = ascii("SET");
@@ -38,9 +40,23 @@ final class RequestTemplates {
         return random.nextDouble() < getRatio ? gets[key] : sets[key];
     }
 
-    /** The {@code SET} of key number {@code index}, used to prepopulate the keyspace. */
+    /** The {@code SET} of key number {@code index}. */
     byte[] set(int index) {
         return sets[index];
+    }
+
+    /**
+     * One {@code MSET} of keys {@code from} (inclusive) to {@code to} (exclusive), with the same values as their
+     * {@code SET}s. Prepopulating with {@code MSET} costs one command, and in a Raft cluster one log entry, per batch.
+     */
+    byte[] mset(int from, int to) {
+        List<byte[]> arguments = new ArrayList<>(1 + 2 * (to - from));
+        arguments.add(ascii("MSET"));
+        for (int i = from; i < to; i++) {
+            arguments.add(key(i));
+            arguments.add(value);
+        }
+        return RespEncoder.encodeCommand(arguments);
     }
 
     int keyspace() {

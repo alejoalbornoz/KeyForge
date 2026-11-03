@@ -1,0 +1,11 @@
+# Loads the KeyForge dashboard (deploy/grafana/dashboards/keyforge.json) into the "KeyForge" folder at start-up.
+apiVersion: 1
+
+providers:
+  - name: keyforge
+    folder: KeyForge
+    type: file
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

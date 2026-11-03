@@ -20,14 +20,22 @@ import io.keyforge.server.cluster.KeyValueStateMachine;
 import io.keyforge.server.cluster.LeaderForwarder;
 import io.keyforge.server.cluster.ReplicatedKeyspace;
 import io.keyforge.server.command.CommandDispatcher;
+import io.keyforge.server.command.CommandObserver;
 import io.keyforge.server.command.CommandTable;
 import io.keyforge.server.command.InfoSection;
 import io.keyforge.server.command.StandardCommands;
+import io.keyforge.server.metrics.CommandMetrics;
+import io.keyforge.server.metrics.MetricsEndpoint;
+import io.keyforge.server.metrics.NodeMetrics;
 import io.keyforge.server.netty.NettyServer;
 import io.keyforge.server.vthreads.VirtualThreadServer;
 import io.keyforge.storage.InMemoryKeyValueStore;
 import io.keyforge.storage.KeyValueStore;
 import io.keyforge.storage.lsm.LsmKeyValueStore;
+import io.keyforge.storage.lsm.LsmStats;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.prometheusmetrics.PrometheusConfig;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 
 /**
  * Composition root: wires the store ({@code store.engine}), the command table and the network server
@@ -41,6 +49,9 @@ public final class KeyForgeNode implements AutoCloseable {
     private final KeyForgeServer server;
     /** {@code null} on a standalone node. */
     private final RaftRuntime raft;
+    /** Set by {@link #start(KeyForgeConfig)} when {@code metrics.port} is; {@code null} otherwise. */
+    private MetricsEndpoint metricsEndpoint;
+    private AutoCloseable jvmMetrics;
 
     private KeyForgeNode(KeyValueStore store, KeyForgeServer server, RaftRuntime raft) {
         this.store = store;
@@ -48,20 +59,65 @@ public final class KeyForgeNode implements AutoCloseable {
         this.raft = raft;
     }
 
-    /** Builds a node from {@code config} and starts serving; returns once the port is bound. */
+    /**
+     * Builds a node from {@code config} and starts serving; returns once the port is bound. With {@code metrics.port}
+     * set, the node records its metrics, and the JVM's, in a Prometheus registry tagged with its node id, and serves
+     * them at {@code GET /metrics} on that port.
+     */
     public static KeyForgeNode start(KeyForgeConfig config) throws InterruptedException {
-        return config.clustered() ? startClustered(config) : startStandalone(config);
+        if (!config.metricsEnabled()) {
+            return start(config, null);
+        }
+        PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+        registry.config().commonTags("node", config.nodeId());
+        AutoCloseable jvm = NodeMetrics.bindJvm(registry);
+        KeyForgeNode node;
+        try {
+            node = start(config, registry);
+        } catch (InterruptedException | RuntimeException e) {
+            closeQuietly(jvm);
+            throw e;
+        }
+        node.jvmMetrics = jvm;
+        try {
+            node.metricsEndpoint = MetricsEndpoint.start(registry, config.metricsBind(), config.metricsPort());
+        } catch (IOException e) {
+            node.close();
+            throw new UncheckedIOException("Cannot serve metrics on " + config.metricsBind() + ":"
+                    + config.metricsPort(), e);
+        }
+        return node;
     }
 
-    private static KeyForgeNode startStandalone(KeyForgeConfig config) throws InterruptedException {
+    /**
+     * Builds a node from {@code config} and starts serving; returns once the port is bound.
+     *
+     * @param registry where the node records its metrics (commands, Raft, LSM engine; see {@link CommandMetrics} and
+     *                 {@link NodeMetrics}), or {@code null} for none
+     */
+    public static KeyForgeNode start(KeyForgeConfig config, MeterRegistry registry) throws InterruptedException {
+        return config.clustered() ? startClustered(config, registry) : startStandalone(config, registry);
+    }
+
+    private static KeyForgeNode startStandalone(KeyForgeConfig config, MeterRegistry registry)
+            throws InterruptedException {
         InstantSource clock = InstantSource.system();
         KeyValueStore store = openStore(config, clock);
         CommandTable commands = StandardCommands.create(store, clock, version(), redisConfigParameters(config));
-        KeyForgeServer server = startServer(config, new CommandDispatcher(commands), store);
+        if (registry != null && store instanceof LsmKeyValueStore lsm) {
+            NodeMetrics.bindLsm(registry, lsm::stats);
+        }
+        KeyForgeServer server = startServer(config,
+                new CommandDispatcher(commands, null, observer(commands, registry)), store);
         return new KeyForgeNode(store, server, null);
     }
 
-    private static KeyForgeNode startClustered(KeyForgeConfig config) throws InterruptedException {
+    private static CommandObserver observer(CommandTable commands, MeterRegistry registry) {
+        return registry == null ? CommandObserver.NONE : new CommandMetrics(commands, registry);
+    }
+
+    private static KeyForgeNode startClustered(KeyForgeConfig config, MeterRegistry registry)
+            throws InterruptedException {
         InstantSource clock = InstantSource.system();
         LsmKeyValueStore store = LsmKeyValueStore.open(lsmOptions(config, clock).withReplicated(true));
         RaftRuntime raft;
@@ -88,7 +144,11 @@ public final class KeyForgeNode implements AutoCloseable {
                     dispatcher::get, config.requestTimeout(), config.maxBulkLength(), config.maxArrayLength());
             CommandTable commands = StandardCommands.create(keyspace, clock, version(),
                     redisConfigParameters(config), () -> infoSections(config, raft));
-            dispatcher.set(new CommandDispatcher(commands, forwarder));
+            if (registry != null) {
+                NodeMetrics.bindRaft(registry, raft::status, raft::appliedIndex);
+                NodeMetrics.bindLsm(registry, store::stats);
+            }
+            dispatcher.set(new CommandDispatcher(commands, forwarder, observer(commands, registry)));
             transport.setForwardHandler(forwarder);
             KeyForgeServer server = startServer(config, dispatcher.get(), null);
             return new KeyForgeNode(store, server, raft);
@@ -120,9 +180,32 @@ public final class KeyForgeNode implements AutoCloseable {
         return server.port();
     }
 
+    /** The port of the Prometheus endpoint, or 0 when metrics are off. */
+    public int metricsPort() {
+        return metricsEndpoint == null ? 0 : metricsEndpoint.port();
+    }
+
     /** The Raft node, or {@code null} on a standalone node. */
     public RaftRuntime raft() {
         return raft;
+    }
+
+    /** The LSM engine's counters and current tables, or {@code null} on the in-memory engine. */
+    public LsmStats lsmStats() {
+        return store instanceof LsmKeyValueStore lsm ? lsm.stats() : null;
+    }
+
+    /**
+     * Flushes the memtable and merges every SSTable into one (a major compaction); blocks until done.
+     *
+     * @return false on the in-memory engine, which has nothing to compact
+     */
+    public boolean compact() {
+        if (store instanceof LsmKeyValueStore lsm) {
+            lsm.compact();
+            return true;
+        }
+        return false;
     }
 
     /** Opens the engine {@code store.engine} selects; the LSM engine recovers whatever is in the data directory. */
@@ -154,11 +237,25 @@ public final class KeyForgeNode implements AutoCloseable {
 
     @Override
     public void close() {
+        if (metricsEndpoint != null) {
+            metricsEndpoint.close();
+        }
         server.close();
         if (raft != null) {
             raft.close();
         }
         store.close();
+        if (jvmMetrics != null) {
+            closeQuietly(jvmMetrics);
+        }
+    }
+
+    private static void closeQuietly(AutoCloseable closeable) {
+        try {
+            closeable.close();
+        } catch (Exception e) {
+            // Only the GC listener of the JVM meters; nothing left to release.
+        }
     }
 
     /** The version from the jar manifest, or a placeholder when running from classes. */

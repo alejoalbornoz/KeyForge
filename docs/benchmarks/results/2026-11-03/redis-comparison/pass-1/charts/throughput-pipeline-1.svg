@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="570" viewBox="0 0 860 570" role="img" aria-label="redis-benchmark throughput, no pipelining" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<title>redis-benchmark throughput, no pipelining</title>
+<style>
+.surface{fill:#fcfcfb}.text{fill:#0b0b0b}.muted{fill:#52514e}.grid{stroke:#e6e5e0}.axis{stroke:#a3a29c}.ring{stroke:#fcfcfb}.f1{fill:#2a78d6}.l1{stroke:#2a78d6}.f2{fill:#eb6834}.l2{stroke:#eb6834}.f3{fill:#1baf7a}.l3{stroke:#1baf7a}.f4{fill:#eda100}.l4{stroke:#eda100}.f5{fill:#e87ba4}.l5{stroke:#e87ba4}.f6{fill:#008300}.l6{stroke:#008300}.f7{fill:#6250d6}.l7{stroke:#6250d6}.f8{fill:#e34948}.l8{stroke:#e34948}
+@media (prefers-color-scheme: dark) {
+.surface{fill:#1a1a19}.text{fill:#f0efec}.muted{fill:#c3c2b7}.grid{stroke:#383835}.axis{stroke:#6b6a64}.ring{stroke:#1a1a19}.f1{fill:#3987e5}.l1{stroke:#3987e5}.f2{fill:#d95926}.l2{stroke:#d95926}.f3{fill:#199e70}.l3{stroke:#199e70}.f4{fill:#c98500}.l4{stroke:#c98500}.f5{fill:#d55181}.l5{stroke:#d55181}.f6{fill:#008300}.l6{stroke:#008300}.f7{fill:#9085e9}.l7{stroke:#9085e9}.f8{fill:#e66767}.l8{stroke:#e66767}
+}
+</style>
+<rect class="surface" x="0" y="0" width="860" height="570" rx="8"/>
+<text x="20" y="30" class="text" font-size="16" text-anchor="start" font-weight="600">redis-benchmark throughput, no pipelining</text>
+<text x="20" y="50" class="muted" font-size="12" text-anchor="start">Requests per second, 50 clients (higher is better)</text>
+<rect x="20" y="67" width="12" height="12" rx="3" class="f1"/>
+<text x="37" y="77" class="text" font-size="12" text-anchor="start">SET</text>
+<rect x="75.2" y="67" width="12" height="12" rx="3" class="f2"/>
+<text x="92.2" y="77" class="text" font-size="12" text-anchor="start">GET</text>
+<rect x="130.3" y="67" width="12" height="12" rx="3" class="f3"/>
+<text x="147.3" y="77" class="text" font-size="12" text-anchor="start">INCR</text>
+<line x1="242.4" y1="90" x2="242.4" y2="522" class="grid" stroke-width="1"/>
+<text x="242.4" y="540" class="muted" font-size="11" text-anchor="middle">0</text>
+<line x1="353.1" y1="90" x2="353.1" y2="522" class="grid" stroke-width="1"/>
+<text x="353.1" y="540" class="muted" font-size="11" text-anchor="middle">25k</text>
+<line x1="463.8" y1="90" x2="463.8" y2="522" class="grid" stroke-width="1"/>
+<text x="463.8" y="540" class="muted" font-size="11" text-anchor="middle">50k</text>
+<line x1="574.6" y1="90" x2="574.6" y2="522" class="grid" stroke-width="1"/>
+<text x="574.6" y="540" class="muted" font-size="11" text-anchor="middle">75k</text>
+<line x1="685.3" y1="90" x2="685.3" y2="522" class="grid" stroke-width="1"/>
+<text x="685.3" y="540" class="muted" font-size="11" text-anchor="middle">100k</text>
+<line x1="796" y1="90" x2="796" y2="522" class="grid" stroke-width="1"/>
+<text x="796" y="540" class="muted" font-size="11" text-anchor="middle">125k</text>
+<line x1="242.4" y1="90" x2="242.4" y2="522" class="axis" stroke-width="1"/>
+<text x="232.4" y="123.5" class="text" font-size="13" text-anchor="end">Redis</text>
+<path class="f1" d="M242.4,96H631.9Q635.9,96 635.9,100V106Q635.9,110 631.9,110H242.4Z"><title>Redis, SET: 88,857 req/s</title></path>
+<text x="640.9" y="107" class="muted" font-size="11" text-anchor="start">89k</text>
+<path class="f2" d="M242.4,112H623.2Q627.2,112 627.2,116V122Q627.2,126 623.2,126H242.4Z"><title>Redis, GET: 86,889 req/s</title></path>
+<text x="632.2" y="123" class="muted" font-size="11" text-anchor="start">87k</text>
+<path class="f3" d="M242.4,128H632.1Q636.1,128 636.1,132V138Q636.1,142 632.1,142H242.4Z"><title>Redis, INCR: 88,889 req/s</title></path>
+<text x="641.1" y="139" class="muted" font-size="11" text-anchor="start">89k</text>
+<text x="232.4" y="185.5" class="text" font-size="13" text-anchor="end">Redis, AOF everysec</text>
+<path class="f1" d="M242.4,158H579.1Q583.1,158 583.1,162V168Q583.1,172 579.1,172H242.4Z"><title>Redis, AOF everysec, SET: 76,917 req/s</title></path>
+<text x="588.1" y="169" class="muted" font-size="11" text-anchor="start">77k</text>
+<path class="f2" d="M242.4,174H623.4Q627.4,174 627.4,178V184Q627.4,188 623.4,188H242.4Z"><title>Redis, AOF everysec, GET: 86,934 req/s</title></path>
+<text x="632.4" y="185" class="muted" font-size="11" text-anchor="start">87k</text>
+<path class="f3" d="M242.4,190H607.4Q611.4,190 611.4,194V200Q611.4,204 607.4,204H242.4Z"><title>Redis, AOF everysec, INCR: 83,326 req/s</title></path>
+<text x="616.4" y="201" class="muted" font-size="11" text-anchor="start">83k</text>
+<text x="232.4" y="247.5" class="text" font-size="13" text-anchor="end">KeyForge, memory</text>
+<path class="f1" d="M242.4,220H744.5Q748.5,220 748.5,224V230Q748.5,234 744.5,234H242.4Z"><title>KeyForge, memory, SET: 114,273 req/s</title></path>
+<text x="753.5" y="231" class="muted" font-size="11" text-anchor="start">114k</text>
+<path class="f2" d="M242.4,236H730.2Q734.2,236 734.2,240V246Q734.2,250 730.2,250H242.4Z"><title>KeyForge, memory, GET: 111,049 req/s</title></path>
+<text x="739.2" y="247" class="muted" font-size="11" text-anchor="start">111k</text>
+<path class="f3" d="M242.4,252H759.1Q763.1,252 763.1,256V262Q763.1,266 759.1,266H242.4Z"><title>KeyForge, memory, INCR: 117,578 req/s</title></path>
+<text x="768.1" y="263" class="muted" font-size="11" text-anchor="start">118k</text>
+<text x="232.4" y="309.5" class="text" font-size="13" text-anchor="end">KeyForge, LSM</text>
+<path class="f1" d="M242.4,282H362.2Q366.2,282 366.2,286V292Q366.2,296 362.2,296H242.4Z"><title>KeyForge, LSM, SET: 27,964 req/s</title></path>
+<text x="371.2" y="293" class="muted" font-size="11" text-anchor="start">28k</text>
+<path class="f2" d="M242.4,298H744.3Q748.3,298 748.3,302V308Q748.3,312 744.3,312H242.4Z"><title>KeyForge, LSM, GET: 114,234 req/s</title></path>
+<text x="753.3" y="309" class="muted" font-size="11" text-anchor="start">114k</text>
+<path class="f3" d="M242.4,314H353.2Q357.2,314 357.2,318V324Q357.2,328 353.2,328H242.4Z"><title>KeyForge, LSM, INCR: 25,913 req/s</title></path>
+<text x="362.2" y="325" class="muted" font-size="11" text-anchor="start">26k</text>
+<text x="232.4" y="371.5" class="text" font-size="13" text-anchor="end">KeyForge, LSM, virtual threads</text>
+<path class="f1" d="M242.4,344H566.3Q570.3,344 570.3,348V354Q570.3,358 566.3,358H242.4Z"><title>KeyForge, LSM, virtual threads, SET: 74,047 req/s</title></path>
+<text x="575.3" y="355" class="muted" font-size="11" text-anchor="start">74k</text>
+<path class="f2" d="M242.4,360H744.4Q748.4,360 748.4,364V370Q748.4,374 744.4,374H242.4Z"><title>KeyForge, LSM, virtual threads, GET: 114,247 req/s</title></path>
+<text x="753.4" y="371" class="muted" font-size="11" text-anchor="start">114k</text>
+<path class="f3" d="M242.4,376H538.4Q542.4,376 542.4,380V386Q542.4,390 538.4,390H242.4Z"><title>KeyForge, LSM, virtual threads, INCR: 67,737 req/s</title></path>
+<text x="547.4" y="387" class="muted" font-size="11" text-anchor="start">68k</text>
+<text x="232.4" y="433.5" class="text" font-size="13" text-anchor="end">KeyForge 3 nodes, leader</text>
+<path class="f1" d="M242.4,406H249.2Q253.2,406 253.2,410V416Q253.2,420 249.2,420H242.4Z"><title>KeyForge 3 nodes, leader, SET: 2,443 req/s</title></path>
+<text x="258.2" y="417" class="muted" font-size="11" text-anchor="start">2.4k</text>
+<path class="f2" d="M242.4,422H297.4Q301.4,422 301.4,426V432Q301.4,436 297.4,436H242.4Z"><title>KeyForge 3 nodes, leader, GET: 13,316 req/s</title></path>
+<text x="306.4" y="433" class="muted" font-size="11" text-anchor="start">13k</text>
+<path class="f3" d="M242.4,438H251.7Q255.7,438 255.7,442V448Q255.7,452 251.7,452H242.4Z"><title>KeyForge 3 nodes, leader, INCR: 2,993 req/s</title></path>
+<text x="260.7" y="449" class="muted" font-size="11" text-anchor="start">3k</text>
+<text x="232.4" y="495.5" class="text" font-size="13" text-anchor="end">KeyForge 3 nodes, follower</text>
+<path class="f1" d="M242.4,468H247.7Q251.7,468 251.7,472V478Q251.7,482 247.7,482H242.4Z"><title>KeyForge 3 nodes, follower, SET: 2,101 req/s</title></path>
+<text x="256.7" y="479" class="muted" font-size="11" text-anchor="start">2.1k</text>
+<path class="f2" d="M242.4,484H258.1Q262.1,484 262.1,488V494Q262.1,498 258.1,498H242.4Z"><title>KeyForge 3 nodes, follower, GET: 4,437 req/s</title></path>
+<text x="267.1" y="495" class="muted" font-size="11" text-anchor="start">4.4k</text>
+<path class="f3" d="M242.4,500H250.2Q254.2,500 254.2,504V510Q254.2,514 250.2,514H242.4Z"><title>KeyForge 3 nodes, follower, INCR: 2,661 req/s</title></path>
+<text x="259.2" y="511" class="muted" font-size="11" text-anchor="start">2.7k</text>
+</svg>

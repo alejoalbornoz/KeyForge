@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="198" viewBox="0 0 860 198" role="img" aria-label="redis-benchmark throughput, no pipelining" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<title>redis-benchmark throughput, no pipelining</title>
+<style>
+.surface{fill:#fcfcfb}.text{fill:#0b0b0b}.muted{fill:#52514e}.grid{stroke:#e6e5e0}.axis{stroke:#a3a29c}.ring{stroke:#fcfcfb}.f1{fill:#2a78d6}.l1{stroke:#2a78d6}.f2{fill:#eb6834}.l2{stroke:#eb6834}.f3{fill:#1baf7a}.l3{stroke:#1baf7a}.f4{fill:#eda100}.l4{stroke:#eda100}.f5{fill:#e87ba4}.l5{stroke:#e87ba4}.f6{fill:#008300}.l6{stroke:#008300}.f7{fill:#6250d6}.l7{stroke:#6250d6}.f8{fill:#e34948}.l8{stroke:#e34948}
+@media (prefers-color-scheme: dark) {
+.surface{fill:#1a1a19}.text{fill:#f0efec}.muted{fill:#c3c2b7}.grid{stroke:#383835}.axis{stroke:#6b6a64}.ring{stroke:#1a1a19}.f1{fill:#3987e5}.l1{stroke:#3987e5}.f2{fill:#d95926}.l2{stroke:#d95926}.f3{fill:#199e70}.l3{stroke:#199e70}.f4{fill:#c98500}.l4{stroke:#c98500}.f5{fill:#d55181}.l5{stroke:#d55181}.f6{fill:#008300}.l6{stroke:#008300}.f7{fill:#9085e9}.l7{stroke:#9085e9}.f8{fill:#e66767}.l8{stroke:#e66767}
+}
+</style>
+<rect class="surface" x="0" y="0" width="860" height="198" rx="8"/>
+<text x="20" y="30" class="text" font-size="16" text-anchor="start" font-weight="600">redis-benchmark throughput, no pipelining</text>
+<text x="20" y="50" class="muted" font-size="12" text-anchor="start">Requests per second, 50 clients (higher is better)</text>
+<rect x="20" y="67" width="12" height="12" rx="3" class="f1"/>
+<text x="37" y="77" class="text" font-size="12" text-anchor="start">SET</text>
+<rect x="75.2" y="67" width="12" height="12" rx="3" class="f2"/>
+<text x="92.2" y="77" class="text" font-size="12" text-anchor="start">GET</text>
+<rect x="130.3" y="67" width="12" height="12" rx="3" class="f3"/>
+<text x="147.3" y="77" class="text" font-size="12" text-anchor="start">INCR</text>
+<line x1="140.5" y1="90" x2="140.5" y2="150" class="grid" stroke-width="1"/>
+<text x="140.5" y="168" class="muted" font-size="11" text-anchor="middle">0</text>
+<line x1="271.6" y1="90" x2="271.6" y2="150" class="grid" stroke-width="1"/>
+<text x="271.6" y="168" class="muted" font-size="11" text-anchor="middle">25k</text>
+<line x1="402.7" y1="90" x2="402.7" y2="150" class="grid" stroke-width="1"/>
+<text x="402.7" y="168" class="muted" font-size="11" text-anchor="middle">50k</text>
+<line x1="533.8" y1="90" x2="533.8" y2="150" class="grid" stroke-width="1"/>
+<text x="533.8" y="168" class="muted" font-size="11" text-anchor="middle">75k</text>
+<line x1="664.9" y1="90" x2="664.9" y2="150" class="grid" stroke-width="1"/>
+<text x="664.9" y="168" class="muted" font-size="11" text-anchor="middle">100k</text>
+<line x1="796" y1="90" x2="796" y2="150" class="grid" stroke-width="1"/>
+<text x="796" y="168" class="muted" font-size="11" text-anchor="middle">125k</text>
+<line x1="140.5" y1="90" x2="140.5" y2="150" class="axis" stroke-width="1"/>
+<text x="130.5" y="123.5" class="text" font-size="13" text-anchor="end">KeyForge, memory</text>
+<path class="f1" d="M140.5,96H702.4Q706.4,96 706.4,100V106Q706.4,110 702.4,110H140.5Z"><title>KeyForge, memory, SET: 107,921 req/s</title></path>
+<text x="711.4" y="107" class="muted" font-size="11" text-anchor="start">108k</text>
+<path class="f2" d="M140.5,112H735.4Q739.4,112 739.4,116V122Q739.4,126 735.4,126H140.5Z"><title>KeyForge, memory, GET: 114,207 req/s</title></path>
+<text x="744.4" y="123" class="muted" font-size="11" text-anchor="start">114k</text>
+<path class="f3" d="M140.5,128H734.9Q738.9,128 738.9,132V138Q738.9,142 734.9,142H140.5Z"><title>KeyForge, memory, INCR: 114,103 req/s</title></path>
+<text x="743.9" y="139" class="muted" font-size="11" text-anchor="start">114k</text>
+</svg>

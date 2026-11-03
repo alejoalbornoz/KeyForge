@@ -22,6 +22,7 @@ public final class CommandDispatcher {
 
     private final CommandTable commands;
     private final CommandRouter router;
+    private final CommandObserver observer;
 
     public CommandDispatcher(CommandTable commands) {
         this(commands, null);
@@ -29,8 +30,17 @@ public final class CommandDispatcher {
 
     /** @param router where redirected commands go; {@code null} on a standalone node */
     public CommandDispatcher(CommandTable commands, CommandRouter router) {
+        this(commands, router, CommandObserver.NONE);
+    }
+
+    /**
+     * @param router   where redirected commands go; {@code null} on a standalone node
+     * @param observer told about every executed command, for metrics
+     */
+    public CommandDispatcher(CommandTable commands, CommandRouter router, CommandObserver observer) {
         this.commands = commands;
         this.router = router;
+        this.observer = observer;
     }
 
     /**
@@ -58,6 +68,23 @@ public final class CommandDispatcher {
         if (!spec.acceptsArgumentCount(arguments.length)) {
             return new RespError(Arguments.wrongArity(spec.name()).getMessage());
         }
+        if (observer == CommandObserver.NONE) {
+            return run(spec, session, arguments, mayForward);
+        }
+        long start = System.nanoTime();
+        RespValue reply = null;
+        try {
+            reply = run(spec, session, arguments, mayForward);
+            return reply;
+        } finally {
+            // No reply: a RedirectException out of dispatchLocally, which the forwarding node reports instead.
+            if (reply != null) {
+                observer.executed(spec, System.nanoTime() - start, reply instanceof RespError);
+            }
+        }
+    }
+
+    private RespValue run(CommandSpec spec, ClientSession session, byte[][] arguments, boolean mayForward) {
         try {
             return spec.command().execute(session, arguments);
         } catch (CommandException e) {

@@ -1,0 +1,16 @@
+[0.012s][info][gc] Using G1
+19:53:02.501 INFO  [main] [kf-target] io.keyforge.server.KeyForgeMain - Starting KeyForge 0.1.0-SNAPSHOT with {node.id=kf-target, server.bind=0.0.0.0, server.port=6379, server.type=netty, server.io-threads=0, protocol.max-bulk-length=536870912, protocol.max-array-length=1048576, store.engine=memory, store.data-dir=data, store.wal.fsync-policy=group-commit, store.wal.group-commit-interval-ms=10, store.wal.group-commit-bytes=1048576, store.memtable-size-bytes=67108864, store.segments=256, store.active-expire-interval-ms=100, cluster.members=, raft.bind=0.0.0.0, raft.data-dir=raft, raft.election-timeout-ms=1000, raft.heartbeat-interval-ms=100, raft.snapshot-threshold=100000, raft.request-timeout-ms=5000, metrics.bind=0.0.0.0, metrics.port=9464}
+[1.022s][info][gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause) 17M->4M(126M) 2.901ms
+19:53:03.785 INFO  [main] [kf-target] i.k.server.metrics.MetricsEndpoint - Serving metrics at http://0.0.0.0:9464/metrics
+19:53:03.786 INFO  [main] [kf-target] io.keyforge.server.KeyForgeMain - Ready to accept connections on 0.0.0.0:6379
+[4.538s][info][gc] GC(1) Pause Young (Normal) (G1 Evacuation Pause) 54M->26M(126M) 57.575ms
+[5.010s][info][gc] GC(2) Pause Full (Diagnostic Command) 28M->27M(94M) 39.053ms
+[6.836s][info][gc] GC(3) Pause Full (Diagnostic Command) 29M->27M(94M) 24.093ms
+[10.007s][info][gc] GC(4) Pause Young (Normal) (G1 Evacuation Pause) 52M->29M(94M) 3.126ms
+[13.914s][info][gc] GC(5) Pause Young (Normal) (G1 Evacuation Pause) 61M->29M(94M) 5.077ms
+[18.348s][info][gc] GC(6) Pause Young (Normal) (G1 Evacuation Pause) 65M->30M(94M) 5.589ms
+[23.187s][info][gc] GC(7) Pause Young (Normal) (G1 Evacuation Pause) 69M->31M(94M) 12.699ms
+[28.273s][info][gc] GC(8) Pause Young (Normal) (G1 Evacuation Pause) 72M->32M(94M) 10.408ms
+[33.593s][info][gc] GC(9) Pause Young (Normal) (G1 Evacuation Pause) 75M->32M(94M) 12.317ms
+[39.178s][info][gc] GC(10) Pause Young (Normal) (G1 Evacuation Pause) 77M->34M(94M) 18.094ms
+[44.904s][info][gc] GC(11) Pause Young (Normal) (G1 Evacuation Pause) 80M->34M(94M) 6.351ms

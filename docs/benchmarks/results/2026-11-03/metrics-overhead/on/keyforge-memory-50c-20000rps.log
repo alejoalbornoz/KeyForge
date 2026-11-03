@@ -1,0 +1,50 @@
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+[keyforge-memory] 50/50 connections in 0.2 s
+[keyforge-memory] warmup   1s     17595 req/s  p50  110690 us  p99   248250 us  p99.9   275775 us  | server RSS   134 MiB, 28 threads
+[keyforge-memory] warmup   2s     20454 req/s  p50     348 us  p99   112067 us  p99.9   182321 us  | server RSS   148 MiB, 28 threads
+[keyforge-memory] warmup   3s     19996 req/s  p50     170 us  p99    16515 us  p99.9    21398 us  | server RSS   152 MiB, 28 threads
+[keyforge-memory] warmup   4s     20000 req/s  p50     170 us  p99     6144 us  p99.9    17089 us  | server RSS   154 MiB, 28 threads
+[keyforge-memory] warmup   5s     20001 req/s  p50     153 us  p99    16392 us  p99.9    22905 us  | server RSS   154 MiB, 28 threads
+[keyforge-memory] warmup   6s     19999 req/s  p50     143 us  p99     6828 us  p99.9    19694 us  | server RSS   154 MiB, 28 threads
+[keyforge-memory] warmup   7s     20000 req/s  p50     145 us  p99     2621 us  p99.9     8249 us  | server RSS   164 MiB, 28 threads
+[keyforge-memory] warmup   8s     20001 req/s  p50     170 us  p99    34308 us  p99.9    46891 us  | server RSS   164 MiB, 28 threads
+[keyforge-memory] warmup   9s     19998 req/s  p50    2189 us  p99    51151 us  p99.9    71827 us  | server RSS   164 MiB, 28 threads
+[keyforge-memory] warmup  10s     20001 req/s  p50     193 us  p99    38240 us  p99.9    49185 us  | server RSS   164 MiB, 28 threads
+[keyforge-memory] measure   1s     20061 req/s  p50     154 us  p99     3852 us  p99.9    16335 us  | server RSS   164 MiB, 28 threads
+[keyforge-memory] measure   2s     19999 req/s  p50     142 us  p99     4862 us  p99.9    16925 us  | server RSS   170 MiB, 28 threads
+[keyforge-memory] measure   3s     19998 req/s  p50     140 us  p99      733 us  p99.9     3881 us  | server RSS   170 MiB, 28 threads
+[keyforge-memory] measure   4s     20004 req/s  p50     154 us  p99     2585 us  p99.9     5820 us  | server RSS   170 MiB, 28 threads
+[keyforge-memory] measure   5s     19999 req/s  p50     139 us  p99      483 us  p99.9     4751 us  | server RSS   170 MiB, 28 threads
+[keyforge-memory] measure   6s     19997 req/s  p50     140 us  p99     1739 us  p99.9    12091 us  | server RSS   170 MiB, 28 threads
+[keyforge-memory] measure   7s     20000 req/s  p50     151 us  p99     9404 us  p99.9    14811 us  | server RSS   176 MiB, 28 threads
+[keyforge-memory] measure   8s     20006 req/s  p50     142 us  p99      731 us  p99.9     3865 us  | server RSS   176 MiB, 28 threads
+[keyforge-memory] measure   9s     19998 req/s  p50     138 us  p99      316 us  p99.9     2216 us  | server RSS   176 MiB, 28 threads
+[keyforge-memory] measure  10s     20001 req/s  p50     140 us  p99      506 us  p99.9     2269 us  | server RSS   176 MiB, 28 threads
+[keyforge-memory] measure  11s     19996 req/s  p50     147 us  p99     6234 us  p99.9     9912 us  | server RSS   176 MiB, 28 threads
+[keyforge-memory] measure  12s     20001 req/s  p50     142 us  p99     5636 us  p99.9    11084 us  | server RSS   178 MiB, 28 threads
+[keyforge-memory] measure  13s     19998 req/s  p50     141 us  p99      952 us  p99.9     2908 us  | server RSS   178 MiB, 28 threads
+[keyforge-memory] measure  14s     20000 req/s  p50     139 us  p99      388 us  p99.9     3316 us  | server RSS   178 MiB, 28 threads
+[keyforge-memory] measure  15s     20002 req/s  p50     140 us  p99      419 us  p99.9     4854 us  | server RSS   178 MiB, 28 threads
+[keyforge-memory] measure  16s     19998 req/s  p50     151 us  p99    30949 us  p99.9    51446 us  | server RSS   178 MiB, 28 threads
+[keyforge-memory] measure  17s     20004 req/s  p50     142 us  p99     9691 us  p99.9    14672 us  | server RSS   182 MiB, 28 threads
+[keyforge-memory] measure  18s     19997 req/s  p50     141 us  p99     1174 us  p99.9     3443 us  | server RSS   182 MiB, 28 threads
+[keyforge-memory] measure  19s     19998 req/s  p50     139 us  p99     2086 us  p99.9     9314 us  | server RSS   182 MiB, 28 threads
+[keyforge-memory] measure  20s     20004 req/s  p50     141 us  p99     1202 us  p99.9     5517 us  | server RSS   182 MiB, 28 threads
+[keyforge-memory] measure  21s     20001 req/s  p50     145 us  p99     1676 us  p99.9     4112 us  | server RSS   182 MiB, 28 threads
+[keyforge-memory] measure  22s     19995 req/s  p50     143 us  p99     3178 us  p99.9     6296 us  | server RSS   182 MiB, 28 threads
+[keyforge-memory] measure  23s     20004 req/s  p50     148 us  p99    18596 us  p99.9    32178 us  | server RSS   184 MiB, 28 threads
+[keyforge-memory] measure  24s     16700 req/s  p50     187 us  p99   238289 us  p99.9   266863 us  | server RSS   184 MiB, 28 threads
+[keyforge-memory] measure  25s     23282 req/s  p50    9118 us  p99   274989 us  p99.9   292553 us  | server RSS   184 MiB, 28 threads
+[keyforge-memory] measure  26s     20015 req/s  p50     213 us  p99    54198 us  p99.9    75497 us  | server RSS   184 MiB, 28 threads
+[keyforge-memory] measure  27s     20000 req/s  p50     149 us  p99     2343 us  p99.9     4252 us  | server RSS   184 MiB, 28 threads
+[keyforge-memory] measure  28s     20000 req/s  p50     145 us  p99     6115 us  p99.9     9716 us  | server RSS   186 MiB, 28 threads
+[keyforge-memory] measure  29s     20000 req/s  p50     154 us  p99     1917 us  p99.9     4932 us  | server RSS   186 MiB, 28 threads
+[keyforge-memory] measure  30s     20000 req/s  p50     153 us  p99     6746 us  p99.9    13844 us  | server RSS   186 MiB, 28 threads
+keyforge-memory: 50/50 connections (0.2 s to connect), open loop at 20000 req/s, epoll transport
+  throughput  20001 req/s over 30.0 s (600058 replies, 0 errors, 0 disconnects)
+  latency us  p50 147  p90 455  p99 60752  p99.9 256508  p99.99 288096  max 299106  mean 2355
+  timer lag   p99 1059 us  max 255328 us
+  server      RSS 161 MiB before connect, 132 MiB idle, 186 MiB peak; live heap 27.8 MiB before connect, 27.9 MiB idle; threads 28 idle, 28 peak; 0.76 cores
+  client      0.82 cores

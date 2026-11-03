@@ -220,6 +220,13 @@ public final class LsmKeyValueStore implements KeyValueStore {
     private final ReentrantLock compactionLock = new ReentrantLock();
 
     private volatile Version current;
+    /** Background work installed since opening, for {@link #stats()}. */
+    private final AtomicLong flushes = new AtomicLong();
+    private final AtomicLong flushedBytes = new AtomicLong();
+    private final AtomicLong compactions = new AtomicLong();
+    private final AtomicLong compactionInputBytes = new AtomicLong();
+    private final AtomicLong compactionOutputBytes = new AtomicLong();
+    private final AtomicLong compactionNanos = new AtomicLong();
     /** Highest sequence number whose write is complete and visible to readers. */
     private volatile long publishedSequence;
     /** Replicated mode: log time of the newest published write; reads never treat an older time as now. */
@@ -625,6 +632,22 @@ public final class LsmKeyValueStore implements KeyValueStore {
         }
         closeQuietly(directory);
         log.info("Closed the LSM store in {}", directory.path());
+    }
+
+    /** Counters of the background work since the store was opened, and the current tables and memtables. */
+    public LsmStats stats() {
+        Version version = current;
+        long tableBytes = 0;
+        for (SSTable table : version.tables) {
+            tableBytes += table.fileSize();
+        }
+        long memtableBytes = version.active.approximateBytes();
+        for (Memtable memtable : version.immutables) {
+            memtableBytes += memtable.approximateBytes();
+        }
+        return new LsmStats(flushes.get(), flushedBytes.get(), compactions.get(), compactionInputBytes.get(),
+                compactionOutputBytes.get(), compactionNanos.get(), version.tables.size(), tableBytes, memtableBytes,
+                version.immutables.size());
     }
 
     // Package-private views for tests.
@@ -1121,6 +1144,9 @@ public final class LsmKeyValueStore implements KeyValueStore {
                 }
                 install(next);
                 installed = true;
+                // Counted before flush() callers wake up, so that they see their flush in stats().
+                flushes.incrementAndGet();
+                flushedBytes.addAndGet(table == null ? 0 : table.fileSize());
                 minWal = wal == null ? nextFileNumber.get() : next.minWalNumber();
                 flushed.signalAll();
                 compactionRequested = true;
@@ -1244,9 +1270,13 @@ public final class LsmKeyValueStore implements KeyValueStore {
                 output.release();
             }
         }
+        long elapsed = System.nanoTime() - started;
+        compactions.incrementAndGet();
+        compactionInputBytes.addAndGet(inputBytes);
+        compactionOutputBytes.addAndGet(output == null ? 0 : output.fileSize());
+        compactionNanos.addAndGet(elapsed);
         log.info("Compacted {} tables ({} bytes{}) into {} in {} ms", inputs.size(), inputBytes,
-                bottom ? ", including the oldest" : "", output == null ? "nothing" : output,
-                (System.nanoTime() - started) / 1_000_000);
+                bottom ? ", including the oldest" : "", output == null ? "nothing" : output, elapsed / 1_000_000);
         return true;
     }
 

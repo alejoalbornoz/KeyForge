@@ -1,0 +1,50 @@
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+[cluster-leader] 50/50 connections in 0.2 s
+[cluster-leader] warmup   1s       900 req/s  p50    6267 us  p99   125108 us  p99.9   133431 us  | server RSS   219 MiB, 34 threads
+[cluster-leader] warmup   2s      1000 req/s  p50    5652 us  p99    31310 us  p99.9    38601 us  | server RSS   225 MiB, 34 threads
+[cluster-leader] warmup   3s      1000 req/s  p50    4682 us  p99    18252 us  p99.9    20382 us  | server RSS   229 MiB, 34 threads
+[cluster-leader] warmup   4s      1000 req/s  p50    4542 us  p99    17580 us  p99.9    19513 us  | server RSS   236 MiB, 34 threads
+[cluster-leader] warmup   5s       997 req/s  p50    4841 us  p99    25297 us  p99.9    31867 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] warmup   6s      1003 req/s  p50    5968 us  p99    31277 us  p99.9    36078 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] warmup   7s       997 req/s  p50    4170 us  p99    22217 us  p99.9    29442 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] warmup   8s      1003 req/s  p50    4202 us  p99    14885 us  p99.9    21660 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] warmup   9s       996 req/s  p50    4534 us  p99    30736 us  p99.9    36536 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] warmup  10s      1001 req/s  p50    3490 us  p99    15147 us  p99.9    23052 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] measure   1s      1002 req/s  p50    3668 us  p99    14189 us  p99.9    17400 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] measure   2s      1003 req/s  p50    4788 us  p99    22757 us  p99.9    26903 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] measure   3s      1000 req/s  p50    4168 us  p99    22397 us  p99.9    26345 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] measure   4s      1000 req/s  p50    3502 us  p99    12222 us  p99.9    13722 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] measure   5s       995 req/s  p50    4702 us  p99    28017 us  p99.9    36143 us  | server RSS   238 MiB, 34 threads
+[cluster-leader] measure   6s       752 req/s  p50    4383 us  p99   141689 us  p99.9   167772 us  | server RSS   239 MiB, 34 threads
+[cluster-leader] measure   7s       538 req/s  p50  493355 us  p99   721420 us  p99.9   732955 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure   8s       450 req/s  p50  961544 us  p99  1270874 us  p99.9  1280311 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure   9s       400 req/s  p50 1486881 us  p99  1710227 us  p99.9  1719665 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  10s      2695 req/s  p50 1211105 us  p99  2003829 us  p99.9  2032140 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  11s      1170 req/s  p50    5935 us  p99   186647 us  p99.9   215220 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  12s       999 req/s  p50    3955 us  p99    18596 us  p99.9    22856 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  13s       999 req/s  p50    3764 us  p99    30523 us  p99.9    36798 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  14s      1002 req/s  p50    3615 us  p99    17089 us  p99.9    20611 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  15s       997 req/s  p50    8511 us  p99    74646 us  p99.9    83493 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  16s       945 req/s  p50   32457 us  p99    66060 us  p99.9    70713 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  17s      1036 req/s  p50   11108 us  p99    75563 us  p99.9    84214 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  18s      1022 req/s  p50    3480 us  p99    25100 us  p99.9    36045 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  19s      1000 req/s  p50    3027 us  p99    13582 us  p99.9    19988 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  20s       959 req/s  p50    5243 us  p99    43221 us  p99.9    52756 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  21s       832 req/s  p50   37323 us  p99   114950 us  p99.9   145097 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  22s      1202 req/s  p50  180093 us  p99   374342 us  p99.9   382730 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  23s      1003 req/s  p50   18924 us  p99    86966 us  p99.9    89719 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  24s       999 req/s  p50    4784 us  p99    22217 us  p99.9    26558 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  25s      1002 req/s  p50    4424 us  p99    24953 us  p99.9    32784 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  26s       985 req/s  p50    5865 us  p99    54362 us  p99.9    59965 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  27s      1015 req/s  p50    8221 us  p99    51642 us  p99.9    62194 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  28s       999 req/s  p50    5140 us  p99    20562 us  p99.9    30982 us  | server RSS   242 MiB, 34 threads
+[cluster-leader] measure  29s      1002 req/s  p50    4538 us  p99    23134 us  p99.9    25559 us  | server RSS   244 MiB, 34 threads
+[cluster-leader] measure  30s      1002 req/s  p50    4305 us  p99    28328 us  p99.9    34308 us  | server RSS   244 MiB, 34 threads
+cluster-leader: 50/50 connections (0.2 s to connect), open loop at 1000 req/s, epoll transport
+  throughput  1000 req/s over 30.0 s (30005 replies, 0 errors, 0 disconnects)
+  latency us  p50 6496  p90 646447  p99 1875902  p99.9 2001732  p99.99 2030043  max 2037383  mean 164279
+  timer lag   p99 512 us  max 17826 us
+  server      RSS 219 MiB before connect, 219 MiB idle, 244 MiB peak; live heap 64.2 MiB before connect, 64.6 MiB idle; threads 34 idle, 34 peak; 0.32 cores
+  client      0.11 cores

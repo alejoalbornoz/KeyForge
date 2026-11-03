@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="440" viewBox="0 0 860 440" role="img" aria-label="Open-loop latency at 20,000 requests/s" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<title>Open-loop latency at 20,000 requests/s</title>
+<style>
+.surface{fill:#fcfcfb}.text{fill:#0b0b0b}.muted{fill:#52514e}.grid{stroke:#e6e5e0}.axis{stroke:#a3a29c}.ring{stroke:#fcfcfb}.f1{fill:#2a78d6}.l1{stroke:#2a78d6}.f2{fill:#eb6834}.l2{stroke:#eb6834}.f3{fill:#1baf7a}.l3{stroke:#1baf7a}.f4{fill:#eda100}.l4{stroke:#eda100}.f5{fill:#e87ba4}.l5{stroke:#e87ba4}.f6{fill:#008300}.l6{stroke:#008300}.f7{fill:#6250d6}.l7{stroke:#6250d6}.f8{fill:#e34948}.l8{stroke:#e34948}
+@media (prefers-color-scheme: dark) {
+.surface{fill:#1a1a19}.text{fill:#f0efec}.muted{fill:#c3c2b7}.grid{stroke:#383835}.axis{stroke:#6b6a64}.ring{stroke:#1a1a19}.f1{fill:#3987e5}.l1{stroke:#3987e5}.f2{fill:#d95926}.l2{stroke:#d95926}.f3{fill:#199e70}.l3{stroke:#199e70}.f4{fill:#c98500}.l4{stroke:#c98500}.f5{fill:#d55181}.l5{stroke:#d55181}.f6{fill:#008300}.l6{stroke:#008300}.f7{fill:#9085e9}.l7{stroke:#9085e9}.f8{fill:#e66767}.l8{stroke:#e66767}
+}
+</style>
+<rect class="surface" x="0" y="0" width="860" height="440" rx="8"/>
+<text x="20" y="30" class="text" font-size="16" text-anchor="start" font-weight="600">Open-loop latency at 20,000 requests/s</text>
+<text x="20" y="50" class="muted" font-size="12" text-anchor="start">50 connections, 80% GET, 20% SET, corrected for coordinated omission (lower is better)</text>
+<rect x="20" y="67" width="12" height="12" rx="3" class="f1"/>
+<text x="37" y="77" class="text" font-size="12" text-anchor="start">Redis</text>
+<rect x="88.6" y="67" width="12" height="12" rx="3" class="f2"/>
+<text x="105.6" y="77" class="text" font-size="12" text-anchor="start">Redis, AOF everysec</text>
+<rect x="251.3" y="67" width="12" height="12" rx="3" class="f3"/>
+<text x="268.3" y="77" class="text" font-size="12" text-anchor="start">KeyForge, memory</text>
+<rect x="393.8" y="67" width="12" height="12" rx="3" class="f4"/>
+<text x="410.8" y="77" class="text" font-size="12" text-anchor="start">KeyForge, LSM</text>
+<rect x="516.2" y="67" width="12" height="12" rx="3" class="f5"/>
+<text x="533.2" y="77" class="text" font-size="12" text-anchor="start">KeyForge, LSM, virtual threads</text>
+<line x1="74" y1="392" x2="601.9" y2="392" class="grid" stroke-width="1"/>
+<text x="66" y="396" class="muted" font-size="11" text-anchor="end">0.01 ms</text>
+<line x1="74" y1="332.8" x2="601.9" y2="332.8" class="grid" stroke-width="1"/>
+<text x="66" y="336.8" class="muted" font-size="11" text-anchor="end">0.1 ms</text>
+<line x1="74" y1="273.6" x2="601.9" y2="273.6" class="grid" stroke-width="1"/>
+<text x="66" y="277.6" class="muted" font-size="11" text-anchor="end">1 ms</text>
+<line x1="74" y1="214.4" x2="601.9" y2="214.4" class="grid" stroke-width="1"/>
+<text x="66" y="218.4" class="muted" font-size="11" text-anchor="end">10 ms</text>
+<line x1="74" y1="155.2" x2="601.9" y2="155.2" class="grid" stroke-width="1"/>
+<text x="66" y="159.2" class="muted" font-size="11" text-anchor="end">100 ms</text>
+<line x1="74" y1="96" x2="601.9" y2="96" class="grid" stroke-width="1"/>
+<text x="66" y="100" class="muted" font-size="11" text-anchor="end">1,000 ms</text>
+<line x1="74" y1="96" x2="74" y2="392" class="grid" stroke-width="1"/>
+<text x="74" y="410" class="muted" font-size="11" text-anchor="middle">0%</text>
+<line x1="179.6" y1="96" x2="179.6" y2="392" class="grid" stroke-width="1"/>
+<text x="179.6" y="410" class="muted" font-size="11" text-anchor="middle">90%</text>
+<line x1="285.2" y1="96" x2="285.2" y2="392" class="grid" stroke-width="1"/>
+<text x="285.2" y="410" class="muted" font-size="11" text-anchor="middle">99%</text>
+<line x1="390.8" y1="96" x2="390.8" y2="392" class="grid" stroke-width="1"/>
+<text x="390.8" y="410" class="muted" font-size="11" text-anchor="middle">99.9%</text>
+<line x1="496.3" y1="96" x2="496.3" y2="392" class="grid" stroke-width="1"/>
+<text x="496.3" y="410" class="muted" font-size="11" text-anchor="middle">99.99%</text>
+<line x1="601.9" y1="96" x2="601.9" y2="392" class="grid" stroke-width="1"/>
+<text x="601.9" y="410" class="muted" font-size="11" text-anchor="middle">99.999%</text>
+<line x1="74" y1="392" x2="601.9" y2="392" class="axis" stroke-width="1"/>
+<text x="338" y="430" class="muted" font-size="11" text-anchor="middle">Percentile</text>
+<text x="16" y="244" class="muted" font-size="11" text-anchor="middle" transform="rotate(-90 16 244)">Latency (ms, log scale)</text>
+<polyline fill="none" class="l1" stroke-width="2" stroke-linejoin="round" points="74,368 78.8,333.6 84.2,328.8 90.4,325.1 97.4,322.4 105.8,319.9 110.6,319 116,317.9 122.1,316.5 129.2,315.5 137.6,314.4 142.4,313.8 147.8,313.1 153.9,312.3 161,311.5 169.4,310.7 174.2,310.2 179.6,309.8 185.7,309.2 192.8,308.5 201.1,307.7 206,307.4 211.4,306.8 217.5,306.2 224.6,305.6 232.9,304.7 237.8,304 243.2,303.1 249.3,302 256.3,300.3 264.7,297.4 269.5,295.4 274.9,292.8 281.1,289.5 288.1,285.2 296.5,279.8 301.3,276.4 306.7,272.5 312.8,268.3 319.9,264.1 328.3,259 333.1,256.8 338.5,254.2 344.6,251.4 351.7,248.6 360.1,245.8 364.9,244.1 370.3,242.2 376.4,239.7 383.5,237.4 391.8,233.8 396.7,231.9 402.1,229.7 408.2,227.6 415.3,224.9 423.6,222.3 428.5,220.9 433.9,219.7 440,218.6 447,216.8 455.4,214.7 460.2,213.7 465.6,212.5 471.8,211.6 478.8,210.7 487.2,210.2 492,209.9 497.4,209.4 503.5,208.7 510.6,208.3 519,208 523.8,207.4 529.2,207.1 535.3,207 542.4,206.4 550.8,206.2 555.6,205.9 561,205.7 567.1,205 574.2,204.8 582.5,204.5 587.4,204.4 592.8,204.3 598.9,204.2 601.9,204"><title>Redis: p50 0.165 ms, p99 0.637 ms, p99.9 4.71 ms, max 15.5 ms</title></polyline>
+<polyline fill="none" class="l2" stroke-width="2" stroke-linejoin="round" points="74,364.2 78.8,333.2 84.2,329 90.4,325.7 97.4,322.9 105.8,320.2 110.6,319.2 116,318 122.1,316.7 129.2,315.4 137.6,314.2 142.4,313.4 147.8,312.6 153.9,311.7 161,310.8 169.4,309.5 174.2,308.6 179.6,307.6 185.7,306.3 192.8,304.5 201.1,301.4 206,298.3 211.4,294 217.5,288.5 224.6,281.7 232.9,273.9 237.8,269.7 243.2,264.7 249.3,258.5 256.3,251.4 264.7,244 269.5,239.9 274.9,235.5 281.1,231.1 288.1,226.2 296.5,221.7 301.3,219.4 306.7,217 312.8,214.6 319.9,212.2 328.3,209.1 333.1,207.7 338.5,206.3 344.6,204.8 351.7,202.9 360.1,200.8 364.9,199.9 370.3,198.8 376.4,198 383.5,197.2 391.8,196.1 396.7,195.4 402.1,194.8 408.2,194.1 415.3,193.3 423.6,192.7 428.5,192.3 433.9,191.8 440,191.3 447,190.9 455.4,190.5 460.2,190.3 465.6,190.1 471.8,189.5 478.8,188.9 487.2,188.5 492,188.1 497.4,187.3 503.5,186.9 510.6,186.6 519,186.2 523.8,185.4 529.2,185 535.3,184.9 542.4,184.8 550.8,184.6 555.6,184.3 561,183.7 567.1,183.3 574.2,183.1 582.5,183.1 587.4,183.1 592.8,183.1 598.9,182.9 601.9,181.7"><title>Redis, AOF everysec: p50 0.163 ms, p99 6.31 ms, p99.9 20.4 ms, max 38.3 ms</title></polyline>
+<polyline fill="none" class="l3" stroke-width="2" stroke-linejoin="round" points="74,367.9 78.8,337 84.2,333.1 90.4,330.3 97.4,327.9 105.8,325 110.6,323.5 116,322.5 122.1,321.1 129.2,320.2 137.6,319.4 142.4,318.8 147.8,318.1 153.9,317.4 161,316.4 169.4,314.7 174.2,313.4 179.6,311.4 185.7,308.6 192.8,304.9 201.1,299.2 206,295.7 211.4,291.4 217.5,286.4 224.6,280.7 232.9,273.5 237.8,269.1 243.2,264.3 249.3,259.2 256.3,253.7 264.7,247.9 269.5,244.7 274.9,241.1 281.1,237.4 288.1,233.4 296.5,229.2 301.3,226.7 306.7,224 312.8,221.2 319.9,218.2 328.3,214.8 333.1,212.8 338.5,211.1 344.6,209.2 351.7,206.9 360.1,204.5 364.9,203 370.3,201.4 376.4,200.1 383.5,198.6 391.8,197.5 396.7,196.9 402.1,196.3 408.2,195.6 415.3,194.9 423.6,194.2 428.5,193.9 433.9,193.6 440,193 447,192.4 455.4,191.8 460.2,191.4 465.6,190.8 471.8,190.3 478.8,189.7 487.2,189.1 492,188.8 497.4,188.2 503.5,187.8 510.6,187.2 519,187.1 523.8,186.9 529.2,186.8 535.3,186.5 542.4,186.4 550.8,186.2 555.6,186.1 561,186.1 567.1,185.9 574.2,185.8 582.5,185.8 587.4,185.7 592.8,185.7 598.9,185.7 601.9,185.6"><title>KeyForge, memory: p50 0.135 ms, p99 4.78 ms, p99.9 19.3 ms, max 31.2 ms</title></polyline>
+<polyline fill="none" class="l4" stroke-width="2" stroke-linejoin="round" points="74,368.2 78.8,333.6 84.2,328.4 90.4,324.3 97.4,321.8 105.8,319.6 110.6,318.6 116,317.3 122.1,315.9 129.2,314.4 137.6,312.4 142.4,311.3 147.8,310.1 153.9,308.7 161,307.1 169.4,305.1 174.2,303.8 179.6,302.3 185.7,300.5 192.8,298.2 201.1,294.9 206,292.4 211.4,288.8 217.5,283.8 224.6,276.5 232.9,267 237.8,261.1 243.2,253.8 249.3,246.2 256.3,238.1 264.7,230.1 269.5,226.1 274.9,222.3 281.1,218.2 288.1,214.3 296.5,210.6 301.3,208.9 306.7,207.2 312.8,205.2 319.9,202.9 328.3,200.5 333.1,199.3 338.5,198 344.6,196.8 351.7,195.3 360.1,193.9 364.9,193 370.3,192.1 376.4,191.2 383.5,190 391.8,188.5 396.7,187.8 402.1,187 408.2,186.2 415.3,185.4 423.6,184.4 428.5,184 433.9,183.4 440,182.9 447,181.9 455.4,181.1 460.2,180.6 465.6,180.3 471.8,179.7 478.8,179.1 487.2,178.5 492,178 497.4,177.6 503.5,177.2 510.6,176.7 519,176.4 523.8,176.3 529.2,175.9 535.3,175.7 542.4,175.4 550.8,174.8 555.6,174.7 561,174.6 567.1,174.1 574.2,174 582.5,173.9 587.4,173.9 592.8,173.8 598.9,173.7 601.9,173.4"><title>KeyForge, LSM: p50 0.167 ms, p99 10 ms, p99.9 27.3 ms, max 52 ms</title></polyline>
+<polyline fill="none" class="l5" stroke-width="2" stroke-linejoin="round" points="74,363.6 78.8,322.9 84.2,316.3 90.4,310.4 97.4,297.7 105.8,271.3 110.6,251.8 116,231.8 122.1,214.8 129.2,200.6 137.6,188.9 142.4,183.9 147.8,179.1 153.9,174.1 161,169.6 169.4,165 174.2,162.6 179.6,160.1 185.7,157.2 192.8,154.1 201.1,150.7 206,149 211.4,147.2 217.5,145.1 224.6,142.9 232.9,140.6 237.8,139.2 243.2,137.5 249.3,135.9 256.3,134.3 264.7,132.7 269.5,131.9 274.9,131.1 281.1,130.3 288.1,129.4 296.5,128.3 301.3,127.7 306.7,127.1 312.8,126.6 319.9,125.6 328.3,124.7 333.1,124.1 338.5,123.6 344.6,123 351.7,122.2 360.1,121.3 364.9,120.6 370.3,120.1 376.4,119.5 383.5,119 391.8,118.3 396.7,118 402.1,117.6 408.2,117.4 415.3,117 423.6,116.5 428.5,116.3 433.9,116.1 440,115.9 447,115.7 455.4,115.3 460.2,115.2 465.6,115 471.8,114.8 478.8,114.6 487.2,114.6 492,114.5 497.4,114.4 503.5,114.4 510.6,114.2 519,114 523.8,113.9 529.2,113.9 535.3,113.8 542.4,113.8 550.8,113.8 555.6,113.8 561,113.7 567.1,113.7 574.2,113.6 582.5,113.6 587.4,113.6 592.8,113.6 598.9,113.6 601.9,113.5"><title>KeyForge, LSM, virtual threads: p50 1.09 ms, p99 273 ms, p99.9 421 ms, max 508 ms</title></polyline>
+<text x="611.9" y="117.5" class="text" font-size="11" text-anchor="start">KeyForge, LSM, virtual threads  506 ms</text>
+<circle cx="601.9" cy="113.5" r="3.5" class="f5 ring" stroke-width="2"/>
+<text x="611.9" y="177.4" class="text" font-size="11" text-anchor="start">KeyForge, LSM  49.3 ms</text>
+<circle cx="601.9" cy="173.4" r="3.5" class="f4 ring" stroke-width="2"/>
+<text x="611.9" y="191.4" class="text" font-size="11" text-anchor="start">Redis, AOF everysec  35.7 ms</text>
+<circle cx="601.9" cy="181.7" r="3.5" class="f2 ring" stroke-width="2"/>
+<text x="611.9" y="205.4" class="text" font-size="11" text-anchor="start">KeyForge, memory  30.6 ms</text>
+<circle cx="601.9" cy="185.6" r="3.5" class="f3 ring" stroke-width="2"/>
+<text x="611.9" y="219.4" class="text" font-size="11" text-anchor="start">Redis  15 ms</text>
+<circle cx="601.9" cy="204" r="3.5" class="f1 ring" stroke-width="2"/>
+</svg>

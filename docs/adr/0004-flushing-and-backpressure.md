@@ -40,6 +40,11 @@ already decoded, writes the final reply, flushes, and closes once the flush comp
   every reply arrives (no deadlock).
 - `MessageToByteEncoder` allocates one pooled buffer per reply. Encoding a whole batch into one buffer would save
   allocations; that is left for profiling (Phase 6) rather than done speculatively.
+  - *Update, Phase 6:* the profile of the in-memory node under `redis-benchmark` put about 15% of the Java samples in
+    per-reply buffer allocation (`AdaptivePoolingAllocator`) and the outbound buffer's bookkeeping
+    (`ChannelOutboundBuffer`). Batch encoding would cut that for pipelining clients and change nothing for clients that
+    send one request at a time. It is an open issue, not yet done
+    ([docs/benchmarks/keyforge-vs-redis.md](../benchmarks/keyforge-vs-redis.md)).
 
 ## Alternatives considered
 

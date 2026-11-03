@@ -37,6 +37,7 @@
     <jmh.version>1.37</jmh.version>
     <grpc.version>1.85.0</grpc.version>
     <protobuf.version>4.36.2</protobuf.version>
+    <micrometer.version>1.17.1</micrometer.version>
 
     <!-- Test libraries -->
     <junit.version>5.14.4</junit.version>
@@ -99,6 +100,13 @@
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
         <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-bom</artifactId>
+        <version>${micrometer.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

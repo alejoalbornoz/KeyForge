@@ -1,0 +1,11 @@
+# Scrapes the three nodes of docker-compose.yml. Every node serves GET /metrics on metrics.port (9464 there); its
+# series carry a node label with its node id (ADR 0019).
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: keyforge
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["kf1:9464", "kf2:9464", "kf3:9464"]

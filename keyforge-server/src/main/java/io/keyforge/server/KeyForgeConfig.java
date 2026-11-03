@@ -54,6 +54,8 @@ import io.keyforge.storage.lsm.FsyncPolicy;
  * @param snapshotThreshold    applied log entries after which a snapshot is taken and the log compacted
  * @param requestTimeout       how long a client command waits for its write to commit, its read to be confirmed or
  *                             the leader to answer a forwarded command
+ * @param metricsBind          address the Prometheus endpoint ({@code GET /metrics}) listens on
+ * @param metricsPort          TCP port of the Prometheus endpoint; 0 disables metrics altogether
  */
 public record KeyForgeConfig(
         String nodeId,
@@ -77,7 +79,9 @@ public record KeyForgeConfig(
         Duration electionTimeout,
         Duration heartbeatInterval,
         long snapshotThreshold,
-        Duration requestTimeout) {
+        Duration requestTimeout,
+        String metricsBind,
+        int metricsPort) {
 
     public static final String NODE_ID = "node.id";
     public static final String SERVER_BIND = "server.bind";
@@ -101,6 +105,8 @@ public record KeyForgeConfig(
     public static final String RAFT_HEARTBEAT_INTERVAL_MS = "raft.heartbeat-interval-ms";
     public static final String RAFT_SNAPSHOT_THRESHOLD = "raft.snapshot-threshold";
     public static final String RAFT_REQUEST_TIMEOUT_MS = "raft.request-timeout-ms";
+    public static final String METRICS_BIND = "metrics.bind";
+    public static final String METRICS_PORT = "metrics.port";
 
     private static final String ENV_PREFIX = "KEYFORGE_";
 
@@ -136,6 +142,8 @@ public record KeyForgeConfig(
                 "must be longer than " + RAFT_HEARTBEAT_INTERVAL_MS);
         require(snapshotThreshold >= 1, RAFT_SNAPSHOT_THRESHOLD, "must be positive");
         require(requestTimeout.toMillis() >= 1, RAFT_REQUEST_TIMEOUT_MS, "must be positive");
+        Objects.requireNonNull(metricsBind, "metricsBind");
+        require(metricsPort >= 0 && metricsPort <= 65535, METRICS_PORT, "must be between 0 and 65535");
         if (!clusterMembers.isEmpty()) {
             require(clusterMembers.containsKey(nodeId), CLUSTER_MEMBERS, "must include this node, '" + nodeId + "'");
             require(storeEngine == StoreEngine.LSM, STORE_ENGINE, "must be '" + StoreEngine.LSM.configName()
@@ -146,6 +154,11 @@ public record KeyForgeConfig(
     /** Whether this node is part of a Raft cluster. */
     public boolean clustered() {
         return !clusterMembers.isEmpty();
+    }
+
+    /** Whether the node records metrics and serves them to Prometheus. */
+    public boolean metricsEnabled() {
+        return metricsPort != 0;
     }
 
     /** The built-in defaults. */
@@ -240,6 +253,8 @@ public record KeyForgeConfig(
         properties.put(RAFT_HEARTBEAT_INTERVAL_MS, Long.toString(heartbeatInterval.toMillis()));
         properties.put(RAFT_SNAPSHOT_THRESHOLD, Long.toString(snapshotThreshold));
         properties.put(RAFT_REQUEST_TIMEOUT_MS, Long.toString(requestTimeout.toMillis()));
+        properties.put(METRICS_BIND, metricsBind);
+        properties.put(METRICS_PORT, Integer.toString(metricsPort));
         return properties;
     }
 
@@ -311,6 +326,8 @@ public record KeyForgeConfig(
         defaults.put(RAFT_HEARTBEAT_INTERVAL_MS, "100");
         defaults.put(RAFT_SNAPSHOT_THRESHOLD, "100000");
         defaults.put(RAFT_REQUEST_TIMEOUT_MS, "5000");
+        defaults.put(METRICS_BIND, "0.0.0.0");
+        defaults.put(METRICS_PORT, "0");
         return Collections.unmodifiableMap(defaults);
     }
 
@@ -337,7 +354,9 @@ public record KeyForgeConfig(
                 Duration.ofMillis(parseLong(values, RAFT_ELECTION_TIMEOUT_MS)),
                 Duration.ofMillis(parseLong(values, RAFT_HEARTBEAT_INTERVAL_MS)),
                 parseLong(values, RAFT_SNAPSHOT_THRESHOLD),
-                Duration.ofMillis(parseLong(values, RAFT_REQUEST_TIMEOUT_MS)));
+                Duration.ofMillis(parseLong(values, RAFT_REQUEST_TIMEOUT_MS)),
+                values.get(METRICS_BIND).strip(),
+                parseInt(values, METRICS_PORT));
     }
 
     /** Parses {@code id=host:port,id=host:port,...}; blank means standalone. */

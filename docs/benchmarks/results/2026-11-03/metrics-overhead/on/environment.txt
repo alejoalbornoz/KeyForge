@@ -1,0 +1,13 @@
+date: 2026-11-03T19:51:29Z
+java image: eclipse-temurin:25-jdk (sha256:f5b4ef3a13414837e75a0d124b28e7263690df23a780749880407768a6d42618)
+redis image: redis:8 (sha256:0a014ae5c04f55c82aaad2314de411c7a203de1c4312c3e526939226a0185dd9)
+docker: 29.6.1, Docker Desktop, kernel 5.15.167.4-microsoft-standard-WSL2, 4 CPUs, 8297238528 bytes
+servers: cpus 0,1, java -Xmx2g -XX:+UseG1GC -Xlog:gc:stdout, KeyForge options --metrics.port=9464
+clients: cpus 2,3, java -Xmx1g -XX:+UseZGC
+redis-benchmark: -c 50 -d 64 -r 100000 --threads 2, tests set get incr, pipelines 1 16, -n 1000000 (pipelined 5000000, cluster 30000), warm-up 500000 (cluster 5000)
+load generator: 50 connections, rates 20000 (cluster 500 1000), warmup 10s, duration 30s
+Starting Redis Server
+Redis server v=8.10.3 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=b71873ae5292ca4e
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)

@@ -1,0 +1,33 @@
+[0.007s][info][gc] Using G1
+19:37:35.679 INFO  [main] [node-1] io.keyforge.server.KeyForgeMain - Starting KeyForge 0.1.0-SNAPSHOT with {node.id=node-1, server.bind=0.0.0.0, server.port=6379, server.type=virtual-threads, server.io-threads=0, protocol.max-bulk-length=536870912, protocol.max-array-length=1048576, store.engine=lsm, store.data-dir=/data/store, store.wal.fsync-policy=group-commit, store.wal.group-commit-interval-ms=10, store.wal.group-commit-bytes=1048576, store.memtable-size-bytes=67108864, store.segments=256, store.active-expire-interval-ms=100, cluster.members=node-1=kf-node-1:7000,node-2=kf-node-2:7000,node-3=kf-node-3:7000, raft.bind=0.0.0.0, raft.data-dir=/data/raft, raft.election-timeout-ms=1000, raft.heartbeat-interval-ms=100, raft.snapshot-threshold=100000, raft.request-timeout-ms=5000}
+19:37:35.737 INFO  [main] [node-1] i.k.storage.lsm.LsmKeyValueStore - Opened the LSM store in /data/store: 0 tables, 0 WAL records replayed, last sequence 0, replicated, applied log index 0, 27 ms
+[1.384s][info][gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause) 17M->4M(126M) 5.553ms
+19:37:35.862 INFO  [main] [node-1] i.k.raft.storage.FileRaftStorage - Opened Raft storage in /data/raft: term 0, voted for null, snapshot 0@0, 0 log entries
+19:37:35.886 INFO  [main] [node-1] i.keyforge.raft.runtime.RaftRuntime - Starting Raft node node-1 of [node-1, node-2, node-3]: term 0, applied 0, log (0, 0]
+19:37:38.273 INFO  [main] [node-1] io.keyforge.raft.grpc.GrpcTransport - Raft transport listening on 0.0.0.0:7000
+19:37:38.571 INFO  [main] [node-1] io.keyforge.server.KeyForgeMain - Ready to accept connections on 0.0.0.0:6379
+19:37:41.219 INFO  [keyforge-raft] [node-1 term=1 index=0] i.keyforge.raft.runtime.RaftRuntime - Following no leader yet in term 1
+19:37:41.247 INFO  [keyforge-raft] [node-1 term=1 index=0] i.keyforge.raft.runtime.RaftRuntime - Following node-2 in term 1
+[11.629s][info][gc] GC(1) Pause Young (Normal) (G1 Evacuation Pause) 54M->13M(126M) 21.389ms
+[14.939s][info][gc] GC(2) Pause Young (Concurrent Start) (Metadata GC Threshold) 36M->24M(126M) 23.727ms
+[14.945s][info][gc] GC(3) Concurrent Mark Cycle
+[14.966s][info][gc] GC(3) Pause Remark 25M->25M(87M) 4.296ms
+[14.998s][info][gc] GC(3) Pause Cleanup 26M->26M(87M) 0.022ms
+[14.998s][info][gc] GC(3) Concurrent Mark Cycle 53.556ms
+[34.147s][info][gc] GC(4) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 68M->37M(91M) 15.535ms
+[51.237s][info][gc] GC(5) Pause Young (Mixed) (G1 Evacuation Pause) 65M->39M(91M) 8.559ms
+[64.378s][info][gc] GC(6) Pause Young (Normal) (G1 Evacuation Pause) 69M->45M(91M) 11.135ms
+[69.430s][info][gc] GC(7) Pause Young (Concurrent Start) (G1 Evacuation Pause) 71M->57M(91M) 9.416ms
+[69.430s][info][gc] GC(8) Concurrent Mark Cycle
+[69.506s][info][gc] GC(8) Pause Remark 58M->58M(97M) 10.187ms
+[69.526s][info][gc] GC(8) Pause Cleanup 58M->58M(97M) 0.024ms
+[69.526s][info][gc] GC(8) Concurrent Mark Cycle 95.415ms
+[70.942s][info][gc] GC(9) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 74M->65M(97M) 6.332ms
+[78.903s][info][gc] GC(10) Pause Young (Mixed) (G1 Evacuation Pause) 80M->66M(97M) 9.786ms
+[84.673s][info][gc] GC(11) Pause Young (Concurrent Start) (G1 Evacuation Pause) 81M->67M(97M) 4.765ms
+[84.673s][info][gc] GC(12) Concurrent Mark Cycle
+[84.759s][info][gc] GC(12) Pause Remark 67M->67M(114M) 4.396ms
+[84.787s][info][gc] GC(12) Pause Cleanup 67M->67M(114M) 0.025ms
+[84.787s][info][gc] GC(12) Concurrent Mark Cycle 114.869ms
+[94.104s][info][gc] GC(13) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 84M->68M(114M) 7.781ms
+[107.596s][info][gc] GC(14) Pause Young (Mixed) (G1 Evacuation Pause) 96M->68M(114M) 7.349ms

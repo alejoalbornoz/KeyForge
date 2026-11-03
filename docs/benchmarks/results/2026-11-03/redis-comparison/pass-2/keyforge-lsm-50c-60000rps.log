@@ -1,0 +1,50 @@
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+[keyforge-lsm] 50/50 connections in 0.2 s
+[keyforge-lsm] warmup   1s     12874 req/s  p50  419693 us  p99   703070 us  p99.9   751305 us  | server RSS   149 MiB, 29 threads
+[keyforge-lsm] warmup   2s     31191 req/s  p50  892862 us  p99  1377829 us  p99.9  1476395 us  | server RSS   166 MiB, 29 threads
+[keyforge-lsm] warmup   3s     41200 req/s  p50 1268777 us  p99  1974469 us  p99.9  2060452 us  | server RSS   169 MiB, 29 threads
+[keyforge-lsm] warmup   4s     60001 req/s  p50 1382023 us  p99  2411725 us  p99.9  2545943 us  | server RSS   178 MiB, 29 threads
+[keyforge-lsm] warmup   5s     66028 req/s  p50 1201668 us  p99  2732589 us  p99.9  2896167 us  | server RSS   192 MiB, 29 threads
+[keyforge-lsm] warmup   6s     68567 req/s  p50  998769 us  p99  3068133 us  p99.9  3172991 us  | server RSS   209 MiB, 29 threads
+[keyforge-lsm] warmup   7s     60116 req/s  p50  837812 us  p99  3441426 us  p99.9  3600810 us  | server RSS   209 MiB, 29 threads
+[keyforge-lsm] warmup   8s     69651 req/s  p50  672662 us  p99  3718250 us  p99.9  3936354 us  | server RSS   229 MiB, 29 threads
+[keyforge-lsm] warmup   9s     68402 req/s  p50  422838 us  p99  3986686 us  p99.9  4341105 us  | server RSS   229 MiB, 29 threads
+[keyforge-lsm] warmup  10s     67091 req/s  p50  181404 us  p99  4424991 us  p99.9  4747952 us  | server RSS   253 MiB, 29 threads
+[keyforge-lsm] measure   1s     68060 req/s  p50    3785 us  p99  4844421 us  p99.9  5108662 us  | server RSS   253 MiB, 29 threads
+[keyforge-lsm] measure   2s     53957 req/s  p50  122159 us  p99  5188354 us  p99.9  5532287 us  | server RSS   253 MiB, 29 threads
+[keyforge-lsm] measure   3s     51443 req/s  p50  192807 us  p99  5561647 us  p99.9  6077546 us  | server RSS   253 MiB, 29 threads
+[keyforge-lsm] measure   4s     66832 req/s  p50  107217 us  p99  6148850 us  p99.9  6404702 us  | server RSS   253 MiB, 29 threads
+[keyforge-lsm] measure   5s     65958 req/s  p50    1927 us  p99  6488588 us  p99.9  6517948 us  | server RSS   253 MiB, 29 threads
+[keyforge-lsm] measure   6s     64675 req/s  p50    1438 us  p99  6476005 us  p99.9  6517948 us  | server RSS   282 MiB, 29 threads
+[keyforge-lsm] measure   7s     61856 req/s  p50   12739 us  p99  6392119 us  p99.9  6689915 us  | server RSS   282 MiB, 29 threads
+[keyforge-lsm] measure   8s     66115 req/s  p50     652 us  p99  6887047 us  p99.9  6979322 us  | server RSS   282 MiB, 29 threads
+[keyforge-lsm] measure   9s     63925 req/s  p50     841 us  p99  6866076 us  p99.9  6924796 us  | server RSS   282 MiB, 29 threads
+[keyforge-lsm] measure  10s     66289 req/s  p50     563 us  p99  6782190 us  p99.9  6908019 us  | server RSS   282 MiB, 29 threads
+[keyforge-lsm] measure  11s     60209 req/s  p50    3967 us  p99  6379536 us  p99.9  6496977 us  | server RSS   282 MiB, 29 threads
+[keyforge-lsm] measure  12s     62880 req/s  p50     469 us  p99  6438257 us  p99.9  6480200 us  | server RSS   282 MiB, 29 threads
+[keyforge-lsm] measure  13s     60716 req/s  p50     749 us  p99  6136267 us  p99.9  6295650 us  | server RSS   282 MiB, 29 threads
+[keyforge-lsm] measure  14s     62391 req/s  p50     446 us  p99  5825888 us  p99.9  6023021 us  | server RSS   282 MiB, 29 threads
+[keyforge-lsm] measure  15s     61636 req/s  p50     481 us  p99  5494538 us  p99.9  5679088 us  | server RSS   282 MiB, 29 threads
+[keyforge-lsm] measure  16s     47156 req/s  p50   27738 us  p99  5150605 us  p99.9  5532287 us  | server RSS   291 MiB, 29 threads
+[keyforge-lsm] measure  17s     57192 req/s  p50  237240 us  p99  5725225 us  p99.9  6069158 us  | server RSS   335 MiB, 29 threads
+[keyforge-lsm] measure  18s     67441 req/s  p50   72548 us  p99  6165627 us  p99.9  6413091 us  | server RSS   335 MiB, 29 threads
+[keyforge-lsm] measure  19s     65014 req/s  p50     710 us  p99  6429868 us  p99.9  6509560 us  | server RSS   335 MiB, 29 threads
+[keyforge-lsm] measure  20s     56664 req/s  p50    1774 us  p99  6304039 us  p99.9  6501171 us  | server RSS   335 MiB, 29 threads
+[keyforge-lsm] measure  21s     62442 req/s  p50   17596 us  p99  6668943 us  p99.9  6903824 us  | server RSS   335 MiB, 29 threads
+[keyforge-lsm] measure  22s     62225 req/s  p50     516 us  p99  6882853 us  p99.9  6928990 us  | server RSS   335 MiB, 29 threads
+[keyforge-lsm] measure  23s     59789 req/s  p50     985 us  p99  6819938 us  p99.9  6891241 us  | server RSS   335 MiB, 29 threads
+[keyforge-lsm] measure  24s     61266 req/s  p50     461 us  p99  6513754 us  p99.9  6656360 us  | server RSS   335 MiB, 29 threads
+[keyforge-lsm] measure  25s     60897 req/s  p50     471 us  p99  6350176 us  p99.9  6480200 us  | server RSS   336 MiB, 29 threads
+[keyforge-lsm] measure  26s     60197 req/s  p50    1563 us  p99  6325010 us  p99.9  6429868 us  | server RSS   337 MiB, 29 threads
+[keyforge-lsm] measure  27s     52720 req/s  p50   31605 us  p99  6073352 us  p99.9  6232736 us  | server RSS   339 MiB, 29 threads
+[keyforge-lsm] measure  28s     59167 req/s  p50   80740 us  p99  6341788 us  p99.9  6673138 us  | server RSS   339 MiB, 29 threads
+[keyforge-lsm] measure  29s     59462 req/s  p50   50627 us  p99  6761218 us  p99.9  6857687 us  | server RSS   341 MiB, 29 threads
+[keyforge-lsm] measure  30s     55939 req/s  p50   23036 us  p99  6689915 us  p99.9  7100957 us  | server RSS   341 MiB, 29 threads
+keyforge-lsm: 50/50 connections (0.2 s to connect), open loop at 60000 req/s, epoll transport
+  throughput  60810 req/s over 30.0 s (1824513 replies, 0 errors, 0 disconnects)
+  latency us  p50 2462  p90 1155531  p99 6375342  p99.9 6895436  p99.99 6979322  max 7159677  mean 428738
+  timer lag   p99 383 us  max 30753 us
+  server      RSS 200 MiB before connect, 146 MiB idle, 341 MiB peak; live heap 13.1 MiB before connect, 13.2 MiB idle; threads 29 idle, 29 peak; 1.88 cores
+  client      1.06 cores

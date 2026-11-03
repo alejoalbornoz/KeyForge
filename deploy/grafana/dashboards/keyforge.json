@@ -1,0 +1,280 @@
+{
+  "title": "KeyForge",
+  "uid": "keyforge",
+  "description": "KeyForge nodes: Raft leadership, term, commit and apply progress, command latency (p99) and throughput, LSM flushes and compactions, JVM heap and GC.",
+  "tags": ["keyforge", "raft", "lsm"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      },
+      {
+        "name": "node",
+        "label": "Node",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "definition": "label_values(keyforge_commands_seconds_count, node)",
+        "query": { "query": "label_values(keyforge_commands_seconds_count, node)", "refId": "nodes" },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "sort": 1,
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    { "type": "row", "title": "Raft", "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "id": 1, "panels": [] },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Leader",
+      "description": "keyforge_raft_leader: 1 on the node that is currently the Raft leader. Exactly one node should show leader; none means an election is in progress or there is no majority.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 5, "w": 10, "x": 0, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "keyforge_raft_leader{node=~\"$node\"}", "legendFormat": "{{node}}", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "text", "value": null }, { "color": "green", "value": 1 } ] },
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "follower" }, "1": { "text": "leader" } } }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "vertical",
+        "textMode": "value_and_name",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Term",
+      "description": "keyforge_raft_term: the highest term any node has seen. Each new term is an election.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 5, "w": 4, "x": 10, "y": 1 },
+      "targets": [ { "refId": "A", "expr": "max(keyforge_raft_term{node=~\"$node\"})", "legendFormat": "term", "instant": true } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "text" }, "decimals": 0 }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value",
+        "colorMode": "none",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Term by node",
+      "description": "keyforge_raft_term per node. A step is an election; a node whose term runs ahead of the others keeps starting elections it cannot win.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 5, "w": 10, "x": 14, "y": 1 },
+      "targets": [ { "refId": "A", "expr": "keyforge_raft_term{node=~\"$node\"}", "legendFormat": "{{node}}" } ],
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "lineWidth": 2, "lineInterpolation": "stepAfter" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "right" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Commit index",
+      "description": "keyforge_raft_commit_index per node: the highest log index known to be committed. Followers trail the leader by one heartbeat.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [ { "refId": "A", "expr": "keyforge_raft_commit_index{node=~\"$node\"}", "legendFormat": "{{node}}" } ],
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Apply lag",
+      "description": "keyforge_raft_apply_lag: committed entries a node has not applied to its LSM store yet. It should stay near zero; a growing lag means the apply thread cannot keep up.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [ { "refId": "A", "expr": "keyforge_raft_apply_lag{node=~\"$node\"}", "legendFormat": "{{node}}" } ],
+      "fieldConfig": { "defaults": { "decimals": 0, "min": 0, "unit": "none", "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    { "type": "row", "title": "Commands", "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }, "id": 7, "panels": [] },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "p99 latency by command",
+      "description": "99th percentile of keyforge_commands_seconds over 1 minute, across the selected nodes: dispatch to reply on the node that answered. Writes include the Raft commit; on a follower, forwarding to the leader. Network time to the client is not included.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.99, sum by (le, command) (rate(keyforge_commands_seconds_bucket{node=~\"$node\"}[1m])))", "legendFormat": "{{command}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "p99 latency by node",
+      "description": "99th percentile of keyforge_commands_seconds over 1 minute, every command together, per node.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.99, sum by (le, node) (rate(keyforge_commands_seconds_bucket{node=~\"$node\"}[1m])))", "legendFormat": "{{node}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Commands per second",
+      "description": "rate(keyforge_commands_seconds_count[1m]) by command. A command forwarded by a follower is counted on the follower and on the leader.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (command) (rate(keyforge_commands_seconds_count{node=~\"$node\"}[1m]))", "legendFormat": "{{command}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "min": 0, "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Error replies per second",
+      "description": "rate(keyforge_command_errors_total[1m]) by command: wrong types, syntax errors, and in a cluster CLUSTERDOWN or unknown-outcome errors during elections.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (command) (rate(keyforge_command_errors_total{node=~\"$node\"}[1m]))", "legendFormat": "{{command}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "min": 0, "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    { "type": "row", "title": "LSM storage", "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 }, "id": 12, "panels": [] },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Flushes and compactions per minute",
+      "description": "keyforge_lsm_flushes_total and keyforge_lsm_compactions_total, per minute and node.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "targets": [
+        { "refId": "A", "expr": "60 * rate(keyforge_lsm_flushes_total{node=~\"$node\"}[2m])", "legendFormat": "flushes {{node}}" },
+        { "refId": "B", "expr": "60 * rate(keyforge_lsm_compactions_total{node=~\"$node\"}[2m])", "legendFormat": "compactions {{node}}" }
+      ],
+      "fieldConfig": { "defaults": { "min": 0, "unit": "none", "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Compaction I/O",
+      "description": "Bytes per second compactions read (keyforge_lsm_compaction_read_bytes_total) and wrote (keyforge_lsm_compaction_written_bytes_total), and flushes wrote (keyforge_lsm_flushed_bytes_total).",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(keyforge_lsm_compaction_read_bytes_total{node=~\"$node\"}[2m]))", "legendFormat": "compaction read" },
+        { "refId": "B", "expr": "sum(rate(keyforge_lsm_compaction_written_bytes_total{node=~\"$node\"}[2m]))", "legendFormat": "compaction written" },
+        { "refId": "C", "expr": "sum(rate(keyforge_lsm_flushed_bytes_total{node=~\"$node\"}[2m]))", "legendFormat": "flushed" }
+      ],
+      "fieldConfig": { "defaults": { "min": 0, "unit": "Bps", "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Time spent compacting",
+      "description": "rate(keyforge_lsm_compaction_seconds_total): the fraction of a core the compaction thread was busy, per node.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
+      "targets": [
+        { "refId": "A", "expr": "rate(keyforge_lsm_compaction_seconds_total{node=~\"$node\"}[2m])", "legendFormat": "{{node}}" }
+      ],
+      "fieldConfig": { "defaults": { "min": 0, "unit": "percentunit", "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "SSTables",
+      "description": "keyforge_lsm_sstables: tables in the current version. Size-tiered compaction keeps it to a few per size tier.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 40 },
+      "targets": [ { "refId": "A", "expr": "keyforge_lsm_sstables{node=~\"$node\"}", "legendFormat": "{{node}}" } ],
+      "fieldConfig": { "defaults": { "decimals": 0, "min": 0, "custom": { "lineWidth": 2, "lineInterpolation": "stepAfter" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "SSTable bytes on disk",
+      "description": "keyforge_lsm_sstable_bytes per node.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 40 },
+      "targets": [ { "refId": "A", "expr": "keyforge_lsm_sstable_bytes{node=~\"$node\"}", "legendFormat": "{{node}}" } ],
+      "fieldConfig": { "defaults": { "min": 0, "unit": "bytes", "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Memtables",
+      "description": "keyforge_lsm_memtable_bytes (active and immutable memtables) and keyforge_lsm_immutable_memtables (waiting to be flushed; more than one means flushes are falling behind).",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 40 },
+      "targets": [
+        { "refId": "A", "expr": "keyforge_lsm_memtable_bytes{node=~\"$node\"}", "legendFormat": "bytes {{node}}" },
+        { "refId": "B", "expr": "keyforge_lsm_immutable_memtables{node=~\"$node\"}", "legendFormat": "waiting {{node}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "min": 0, "unit": "bytes", "custom": { "lineWidth": 2 } },
+        "overrides": [
+          { "matcher": { "id": "byFrameRefID", "options": "B" }, "properties": [ { "id": "unit", "value": "none" }, { "id": "custom.axisPlacement", "value": "right" }, { "id": "decimals", "value": 0 } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    { "type": "row", "title": "JVM", "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 48 }, "id": 19, "panels": [] },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Heap used",
+      "description": "jvm_memory_used_bytes for the heap, per node.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 49 },
+      "targets": [ { "refId": "A", "expr": "sum by (node) (jvm_memory_used_bytes{area=\"heap\", node=~\"$node\"})", "legendFormat": "{{node}}" } ],
+      "fieldConfig": { "defaults": { "min": 0, "unit": "bytes", "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "GC pause time",
+      "description": "rate(jvm_gc_pause_seconds_sum): the fraction of time each node's JVM was paused for garbage collection. Pauses add directly to command latency.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 49 },
+      "targets": [ { "refId": "A", "expr": "sum by (node) (rate(jvm_gc_pause_seconds_sum{node=~\"$node\"}[1m]))", "legendFormat": "{{node}}" } ],
+      "fieldConfig": { "defaults": { "min": 0, "unit": "percentunit", "custom": { "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    }
+  ]
+}

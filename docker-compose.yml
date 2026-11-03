@@ -1,0 +1,100 @@
+# KeyForge quick start: a three-node Raft cluster, Prometheus scraping every node, and Grafana with the KeyForge
+# dashboard. Nothing but Docker is needed: the server image is built from source on first use (a few minutes).
+#
+#   docker compose up -d
+#   redis-cli -p 6380 SET hello world           # or, without a local redis-cli:
+#   docker run --rm --network keyforge-quickstart_default redis:8 redis-cli -h kf2 SET hello world
+#   open http://localhost:3000   Grafana, dashboard "KeyForge" (anonymous viewer; admin/admin to edit)
+#   open http://localhost:9090   Prometheus
+#   docker compose --profile load up -d load    # redis-benchmark traffic, so the dashboard has something to show
+#   docker compose --profile load down -v       # stop everything and delete the data
+#
+# From the host, the nodes' RESP ports are 6379 (kf1), 6380 (kf2) and 6381 (kf3). Any node accepts any command:
+# followers forward data commands to the leader. The five-node cluster for fault injection is keyforge-chaos/.
+
+name: keyforge-quickstart
+
+# One image for the three nodes, built once by kf1: the others use the same tag and never pull it.
+x-node: &node
+  image: keyforge-server:latest
+  pull_policy: never
+  restart: unless-stopped
+
+x-environment: &environment
+  KEYFORGE_SERVER_TYPE: virtual-threads
+  KEYFORGE_STORE_DATA_DIR: /data/store
+  KEYFORGE_RAFT_DATA_DIR: /data/raft
+  KEYFORGE_CLUSTER_MEMBERS: node-1=kf1:7000,node-2=kf2:7000,node-3=kf3:7000
+  KEYFORGE_METRICS_PORT: "9464"
+  # Short DNS caching: a restarted container may come back with another address.
+  JAVA_TOOL_OPTIONS: "-Xmx512m -Dsun.net.inetaddr.ttl=2 -Dsun.net.inetaddr.negative.ttl=1"
+
+services:
+  kf1:
+    <<: *node
+    build: .
+    pull_policy: missing
+    hostname: kf1
+    environment:
+      <<: *environment
+      KEYFORGE_NODE_ID: node-1
+    ports: ["6379:6379"]
+    volumes: [kf1-data:/data]
+
+  kf2:
+    <<: *node
+    hostname: kf2
+    environment:
+      <<: *environment
+      KEYFORGE_NODE_ID: node-2
+    ports: ["6380:6379"]
+    volumes: [kf2-data:/data]
+
+  kf3:
+    <<: *node
+    hostname: kf3
+    environment:
+      <<: *environment
+      KEYFORGE_NODE_ID: node-3
+    ports: ["6381:6379"]
+    volumes: [kf3-data:/data]
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=2d"]
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["9090:9090"]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/keyforge.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+    depends_on: [prometheus]
+    restart: unless-stopped
+
+  # Optional traffic for the dashboard: stock redis-benchmark against each node in turn, forever.
+  load:
+    image: redis:8
+    profiles: [load]
+    depends_on: [kf1, kf2, kf3]
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        while true; do for node in kf1 kf2 kf3; do
+        redis-benchmark -h $$node -t set,get,incr -n 20000 -c 10 -r 100000 -d 64 -q || sleep 1;
+        done; done
+
+volumes:
+  kf1-data:
+  kf2-data:
+  kf3-data:

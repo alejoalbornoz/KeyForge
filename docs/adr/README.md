@@ -21,3 +21,5 @@ One file per decision: context, decision, consequences, alternatives considered.
 | [0015](0015-linearizability-checking-with-porcupine.md) | Jepsen-style histories from a Java workload, checked per key by Porcupine | 5 |
 | [0016](0016-fault-injection-in-docker.md) | Fault injection: a network container per node, iptables and Toxiproxy, signals to the server | 5 |
 | [0017](0017-retry-only-what-certainly-had-no-effect.md) | Forwarded commands are retried only when they certainly had no effect | 4 (fix found in 5) |
+| [0018](0018-benchmarking-against-redis.md) | Benchmark against Redis with redis-benchmark for throughput and an open loop for latency, on one machine | 6 |
+| [0019](0019-metrics-and-dashboard.md) | Micrometer meters in the node, served at `/metrics`; Prometheus and Grafana in the quick start | 6 |

@@ -1,0 +1,11 @@
+# The image build (Dockerfile) needs the sources and every module's pom.xml, nothing else.
+**/target/
+.git/
+.idea/
+.vscode/
+*.iml
+docs/
+deploy/
+keyforge-chaos/results/
+keyforge-chaos/checker/
+**/.jqwik-database

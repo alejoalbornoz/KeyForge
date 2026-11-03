@@ -42,6 +42,15 @@ class RequestTemplatesTest {
     }
 
     @Test
+    void anMsetCoversAHalfOpenRangeOfKeysWithTheirSetValues() {
+        RequestTemplates templates = new RequestTemplates(10, 3, 1.0);
+
+        assertThat(decode(templates.mset(3, 6))).containsExactly(
+                "MSET", "key:0000003", "vvv", "key:0000004", "vvv", "key:0000005", "vvv");
+        assertThat(decode(templates.mset(9, 10))).containsExactly("MSET", "key:0000009", "vvv");
+    }
+
+    @Test
     void aGetRatioOfOneOnlyReads() {
         RequestTemplates templates = new RequestTemplates(10, 3, 1.0);
         SplittableRandom random = new SplittableRandom(2);

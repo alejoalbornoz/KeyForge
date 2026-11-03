@@ -610,6 +610,35 @@ class LsmKeyValueStoreTest {
     }
 
     @Test
+    void statsCountFlushesAndCompactionsAndDescribeTheCurrentTables() {
+        LsmKeyValueStore store = open(options().withCompaction(NO_BACKGROUND_COMPACTION, 0));
+        assertThat(store.stats()).isEqualTo(new LsmStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+
+        store.put(b("a"), b("1"), NO_EXPIRY, ALWAYS);
+        assertThat(store.stats().memtableBytes()).isPositive();
+        store.flush();
+        store.put(b("b"), b("2"), NO_EXPIRY, ALWAYS);
+        store.flush();
+
+        LsmStats flushed = store.stats();
+        assertThat(flushed.flushes()).isEqualTo(2);
+        assertThat(flushed.tables()).isEqualTo(2);
+        assertThat(flushed.flushedBytes()).isEqualTo(flushed.tableBytes()).isPositive();
+        assertThat(flushed.compactions()).isZero();
+        assertThat(flushed.memtableBytes()).isZero();
+        assertThat(flushed.immutableMemtables()).isZero();
+
+        store.compact();
+
+        LsmStats compacted = store.stats();
+        assertThat(compacted.compactions()).isEqualTo(1);
+        assertThat(compacted.tables()).isEqualTo(1);
+        assertThat(compacted.compactionInputBytes()).isEqualTo(flushed.tableBytes());
+        assertThat(compacted.compactionOutputBytes()).isEqualTo(compacted.tableBytes()).isPositive();
+        assertThat(compacted.compactionNanos()).isPositive();
+    }
+
+    @Test
     void optionsValidateTheirValues() {
         LsmKeyValueStore.Options defaults = LsmKeyValueStore.Options.defaults(dir);
 

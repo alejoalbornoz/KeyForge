@@ -48,7 +48,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
  * coordinated omission in open loop; see {@link LoadConnection}) and, given the server's pid, its memory, threads and
  * CPU.
  *
- * <p>A run: wait for the server, {@code SET} every key, open all connections, let them sit idle for
+ * <p>A run: wait for the server, set every key ({@code MSET}), open all connections, let them sit idle for
  * {@code settle-seconds} and sample the server, run traffic for {@code warmup-seconds} (discarded), then measure for
  * {@code duration-seconds}.
  *
@@ -59,6 +59,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 public final class LoadGenerator {
 
     private static final int PREPOPULATE_BATCH = 1_000;
+    private static final int PREPOPULATE_MSET_KEYS = 100;
     private static final int CONNECT_ATTEMPTS = 3;
     private static final double NANOS_PER_MICRO = 1_000.0;
     private static final double BYTES_PER_MIB = 1024.0 * 1024.0;
@@ -216,7 +217,10 @@ public final class LoadGenerator {
         }
     }
 
-    /** {@code SET}s every key over one pipelining connection, so that {@code GET}s find values. */
+    /**
+     * Sets every key, so that {@code GET}s find values: {@code MSET}s of {@link #PREPOPULATE_MSET_KEYS} keys, pipelined
+     * {@link #PREPOPULATE_BATCH} keys at a time over one connection.
+     */
     private void prepopulate(RequestTemplates templates) throws IOException {
         byte[] ok = "+OK\r\n".getBytes(StandardCharsets.US_ASCII);
         try (Socket socket = new Socket()) {
@@ -227,11 +231,13 @@ public final class LoadGenerator {
             for (int start = 0; start < templates.keyspace(); start += PREPOPULATE_BATCH) {
                 int end = Math.min(templates.keyspace(), start + PREPOPULATE_BATCH);
                 ByteArrayOutputStream batch = new ByteArrayOutputStream();
-                for (int i = start; i < end; i++) {
-                    batch.writeBytes(templates.set(i));
+                int commands = 0;
+                for (int from = start; from < end; from += PREPOPULATE_MSET_KEYS) {
+                    batch.writeBytes(templates.mset(from, Math.min(end, from + PREPOPULATE_MSET_KEYS)));
+                    commands++;
                 }
                 batch.writeTo(out);
-                byte[] replies = new byte[(end - start) * ok.length];
+                byte[] replies = new byte[commands * ok.length];
                 in.readFully(replies);
                 for (int i = 0; i < replies.length; i += ok.length) {
                     if (!Arrays.equals(replies, i, i + ok.length, ok, 0, ok.length)) {
